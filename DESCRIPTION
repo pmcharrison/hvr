@@ -1,4 +1,4 @@
-Package: hvpt
+Package: hvs
 Title: Harmony Viewpoints
 Version: 0.0.0.9000
 Authors@R: person("Peter", "Harrison", email = "pmc.harrison@gmail.com", role = c("aut", "cre"))
