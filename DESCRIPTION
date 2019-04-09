@@ -1,8 +1,8 @@
-Package: hvs
-Title: Harmony Viewpoints
+Package: hvr
+Title: Harmonic Viewpoint Regression
 Version: 0.0.0.9000
 Authors@R: person("Peter", "Harrison", email = "pmc.harrison@gmail.com", role = c("aut", "cre"))
-Description: Defines viewpoints for modelling harmonic sequences with multiple viewpoint systems.
+Description: Tools for constructing Harmonic Viewpoint Regression (HVR) models.
 Depends: R (>= 3.5.0)
 License: MIT + file LICENSE
 Encoding: UTF-8
