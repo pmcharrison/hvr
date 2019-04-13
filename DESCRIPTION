@@ -10,4 +10,15 @@ LazyData: true
 RoxygenNote: 6.1.1
 Imports: 
     magrittr,
-    devtools
+    devtools,
+    parn88,
+    hrep
+Collate: 
+    'mappings.R'
+    'utils-pipe.R'
+    'viewpoints.R'
+    'viewpoints-dynamic.R'
+    'viewpoints-static.R'
+Remotes:
+    pmcharrison/parn88,
+    pmcharrison/hrep

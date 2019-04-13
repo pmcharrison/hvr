@@ -1,0 +1,2 @@
+#' @include viewpoints.R
+NULL
