@@ -56,10 +56,10 @@ new_static_viewpoint("pc_chord_type",
                      discrete = TRUE,
                      mapping = hvr::.map_pc_chord$pc_chord_type_id)
 
-new_static_viewpoint("num_pcs",
-                     alphabet_size = NA,
-                     discrete = FALSE,
-                     mapping = hvr::.map_pc_chord$num_pcs)
+# new_static_viewpoint("num_pcs",
+#                      alphabet_size = NA,
+#                      discrete = FALSE,
+#                      mapping = hvr::.map_pc_chord$num_pcs)
 
 # new_static_viewpoint("hutch_78_roughness",
 #                      alphabet_size = NA,
