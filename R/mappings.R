@@ -46,6 +46,32 @@ new_map$transpose_pc_chord_id <- function(pc_chords) {
   x
 }
 
+generate_ideal_voicings <- function() {
+  message("Getting ideal pc_chord voicings...")
+
+  pc_chords <- hrep::list_chords("pc_chord")
+
+  cache_dir <- "cache/get_ideal_voicing"
+  R.utils::mkdirs(cache_dir)
+  get_ideal_voicing <- memoise::memoise(get_ideal_voicing,
+                                        cache = memoise::cache_filesystem(cache_dir))
+
+  .pc_chord_ideal_voicings <- plyr::llply(pc_chords,
+                                          get_ideal_voicing,
+                                          .progress = "text")
+  save(.pc_chord_ideal_voicings, file = "data/pc_chord_ideal_voicings.rda")
+}
+
+get_ideal_voicing <- function(pc_chord) {
+  x <- hrep::vec(list(pc_chord), "pc_chord")
+  size <- length(pc_chord)
+  opt <- voicer::voice_opt(min_notes = 1L,
+                           max_notes = pmax(5, size),
+                           features = voicer::voice_features(ideal_num_notes = 5L),
+                           verbose = FALSE)
+  voicer::voice(x, opt)[[1]]
+}
+
 generate_mappings <- function() {
   pc_chord_ids <- seq_len(hrep::alphabet_size("pc_chord"))
   pc_chords <- hrep::list_chords("pc_chord")
@@ -54,6 +80,9 @@ generate_mappings <- function() {
   root_pcs <- parn88::root_by_pc_chord  # alphabet: 0-11
 
   bass_pc_rel_root <- (bass_pcs - root_pcs) %% 12L
+
+  voicings <- get_ideal_voicings(pc_chords)
+  hutch_78 <- purrr::map_dbl(voicings, voicer::hutch_78)
 
   .map_pc_chord <- list(
     pc_chord_type_id = new_map$pc_chord_type(pc_chords), # alphabet: pc_chord_type

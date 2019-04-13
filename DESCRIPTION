@@ -12,7 +12,12 @@ Imports:
     magrittr,
     devtools,
     parn88,
-    hrep
+    hrep,
+    plyr,
+    voicer,
+    har18,
+    R.utils,
+    memoise
 Collate: 
     'mappings.R'
     'utils-pipe.R'
@@ -21,4 +26,6 @@ Collate:
     'viewpoints-static.R'
 Remotes:
     pmcharrison/parn88,
-    pmcharrison/hrep
+    pmcharrison/hrep,
+    pmcharrison/voicer
+    pmcharrison/har18
