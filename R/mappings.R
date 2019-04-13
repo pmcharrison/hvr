@@ -67,6 +67,7 @@ get_ideal_voicing <- function(pc_chord) {
   size <- length(pc_chord)
   opt <- voicer::voice_opt(min_notes = 1L,
                            max_notes = pmax(5, size),
+                           max_octave = 0,
                            features = voicer::voice_features(ideal_num_notes = 5L),
                            verbose = FALSE)
   voicer::voice(x, opt)[[1]]
