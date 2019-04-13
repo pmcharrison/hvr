@@ -7,28 +7,38 @@ get_viewpoint_matrices <- function(chord_ids,
   continuous_viewpoints <- viewpoints[!is_discrete]
 
   list(
-    discrete = get_discrete_viewpoint_matrices(chord_ids,
-                                               discrete_viewpoints,
-                                               continuations),
-    continuous = get_continuous_viewpoint_matrices(chord_ids,
-                                                   continuous_viewpoints,
-                                                   continuations)
+    discrete = get_viewpoint_matrix(chord_ids,
+                                    discrete_viewpoints,
+                                    discrete = TRUE,
+                                    continuations = continuations),
+    continuous = get_viewpoint_matrix(chord_ids,
+                                      continuous_viewpoints,
+                                      discrete = FALSE,
+                                      continuations = continuations)
   )
 }
 
-viewpoint_type <- function(viewpoints) {
+is_viewpoint_discrete <- function(viewpoints) {
   checkmate::qassert(viewpoints, "S")
   invalid <- !viewpoints %in% names(.viewpoints)
+  if (any(invalid))
+    stop("the following viewpoint names are invalid: ",
+         paste(viewpoints[invalid], collapse = ", "))
   purrr::map_lgl(viewpoints, ~ .viewpoints[[.]]$discrete)
 }
 
 get_viewpoint_matrix <- function(chord_ids,
                                  viewpoints,
+                                 discrete,
                                  continuations = FALSE) {
-  chords <- hrep::decode(hrep::coded_vec(sequence, "pc_chord"))
+  checkmate::qassert(discrete, "B1")
+  stopifnot(all(is_viewpoint_discrete(viewpoints) == discrete))
+
+  chords <- hrep::decode(hrep::coded_vec(chord_ids, "pc_chord"))
   res <- array(dim = c(length(viewpoints),
-                       length(sequence),
-                       if (continuations) hrep::alphabet_size("pc_chord")))
+                       length(chord_ids),
+                       if (continuations) hrep::alphabet_size("pc_chord")),
+               data = if (discrete) as.integer(NA) else as.numeric(NA))
   dimnames(res) <- list(viewpoints)
 
   # tonics <- if (need_tonics(viewpoints)) get_tonics(chords)
@@ -39,6 +49,7 @@ get_viewpoint_matrix <- function(chord_ids,
     res_i <- get_viewpoint(vpt_i)$fun(chord_ids = chord_ids,
                                       chords = chords,
                                       continuations = continuations)
+    stopifnot(is.integer(res_i) == discrete)
     # tonics = tonics)
     if (continuations)
       res[i, , ] <- res_i else
