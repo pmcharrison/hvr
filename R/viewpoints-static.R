@@ -3,9 +3,13 @@ NULL
 
 new_static_viewpoint <- function(label, alphabet_size, discrete, mapping) {
   checkmate::qassert(mapping, "X[1,)")
+  alphabet_size <- as.integer(alphabet_size)
   mapping <- as.integer(mapping)
-  stopifnot(alphabet_size == max(mapping))
-  stopifnot(length(mapping) == hrep::alphabet_size("pc_chord"))
+  checkmate::qassert(alphabet_size, "x1")
+  if (discrete) {
+    stopifnot(alphabet_size == max(mapping))
+    stopifnot(length(mapping) == hrep::alphabet_size("pc_chord"))
+  }
   new_viewpoint(label, alphabet_size, discrete, function(chord_ids, chords, continuations, ...) {
     if (continuations) {
       matrix(rep(mapping, times = length(chord_ids)),
@@ -51,3 +55,13 @@ new_static_viewpoint("pc_chord_type",
                      hrep::alphabet_size("pc_chord_type"),
                      discrete = TRUE,
                      mapping = hvr::.map_pc_chord$pc_chord_type_id)
+
+new_static_viewpoint("hutch_78_roughness",
+                     alphabet_size = NA,
+                     discrete = FALSE,
+                     mapping = hvr::.map_pc_chord$hutch_78_roughness)
+
+new_static_viewpoint("har_18_harmonicity",
+                     alphabet_size = NA,
+                     discrete = FALSE,
+                     mapping = hvr::.map_pc_chord$har_18_harmonicity)

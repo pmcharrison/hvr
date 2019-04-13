@@ -81,14 +81,24 @@ generate_mappings <- function() {
 
   bass_pc_rel_root <- (bass_pcs - root_pcs) %% 12L
 
-  voicings <- get_ideal_voicings(pc_chords)
-  hutch_78 <- purrr::map_dbl(voicings, voicer::hutch_78)
+  message("Applying consonance models...")
+  R.utils::mkdirs("cache/incon")
+  incon <- memoise::memoise(incon::incon,
+                            cache = memoise::cache_filesystem("cache/incon"))
+  # voicings <- hvr::.pc_chord_ideal_voicings
+  voicings <- purrr::map(pc_chords, hrep::pi_chord)
+  consonance <- plyr::laply(voicings, incon, model = c("hutch_78_roughness",
+                                                       "har_18_harmonicity"),
+                            .progress = "text")
 
   .map_pc_chord <- list(
     pc_chord_type_id = new_map$pc_chord_type(pc_chords), # alphabet: pc_chord_type
 
     pc_set_id = hrep::pc_chord_id_to_pc_set_id_map,  # alphabet: pc_set
     pc_set_rel_root_id = new_map$pc_set_rel_root(pc_chords, root_pcs), # alphabet: pc_set_rel_root
+
+    hutch_78_roughness = consonance[, "hutch_78_roughness"],
+    har_18_harmonicity = consonance[, "har_18_harmonicity"],
 
     bass_pc_id = bass_pcs + 1L,
     root_pc_id = root_pcs + 1L,

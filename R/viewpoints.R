@@ -56,7 +56,7 @@ get_viewpoint <- function(x) .viewpoints[[x]]
 
 new_viewpoint <- function(label, alphabet_size, discrete, fun) {
   checkmate::qassert(label, "S1")
-  checkmate::qassert(alphabet_size, "X1")
+  checkmate::qassert(alphabet_size, "x1")
   checkmate::qassert(discrete, "B1")
   stopifnot(is.function(fun))
   if (label %in% names(.viewpoints)) stop("viewpoint ", label, " already exists")
