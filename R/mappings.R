@@ -98,6 +98,8 @@ generate_mappings <- function() {
     pc_set_id = hrep::pc_chord_id_to_pc_set_id_map,  # alphabet: pc_set
     pc_set_rel_root_id = new_map$pc_set_rel_root(pc_chords, root_pcs), # alphabet: pc_set_rel_root
 
+    num_pcs = purrr::map(pc_chords, length),
+
     hutch_78_roughness = consonance[, "hutch_78_roughness"],
     har_18_harmonicity = consonance[, "har_18_harmonicity"],
 
