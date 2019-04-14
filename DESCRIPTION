@@ -24,6 +24,7 @@ Collate:
     'viewpoints.R'
     'viewpoint-bass-int.R'
     'viewpoint-pc-chord-rel-prev-bass.R'
+    'viewpoint-pc-set-rel-prev-bass.R'
     'viewpoint-root-int.R'
     'viewpoint-vl-dist.R'
     'viewpoints-dynamic.R'

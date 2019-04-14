@@ -17,7 +17,6 @@ new_viewpoint(
                   nrow = length(chord_ids))
     if (length(chord_ids) > 1) {
       observed_bass_pcs <- hvr::.map_pc_chord$bass_pc[chord_ids]
-      chord_id_alphabet <- seq_len(hrep::alphabet_size("pc_chord"))
       for (i in seq(from = 2, to = length(chord_ids))) {
         res[i, ] <- pc_chord_rel_prev_bass(ref_bass_pc = observed_bass_pcs[i - 1L])
       }
