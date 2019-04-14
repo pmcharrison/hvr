@@ -65,15 +65,17 @@ get_viewpoint_matrix <- function(chord_ids,
 
 get_viewpoint <- function(x) .viewpoints[[x]]
 
-new_viewpoint <- function(label, alphabet_size, discrete, fun) {
+new_viewpoint <- function(label, alphabet_size, discrete, f_obs, f_all) {
   checkmate::qassert(label, "S1")
   checkmate::qassert(alphabet_size, "x1")
   checkmate::qassert(discrete, "B1")
-  stopifnot(is.function(fun))
+  stopifnot(is.function(f_obs))
+  stopifnot(is.function(f_all))
   if (label %in% names(.viewpoints)) stop("viewpoint ", label, " already exists")
   .viewpoints[[label]] <<- list(
-    fun = fun,
     alphabet_size = as.integer(alphabet_size),
-    discrete = discrete
+    discrete = discrete,
+    f_obs = f_obs,
+    f_all = f_all
   )
 }

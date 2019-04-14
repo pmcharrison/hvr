@@ -29,3 +29,5 @@ Remotes:
     pmcharrison/hrep,
     pmcharrison/voicer
     pmcharrison/har18
+Suggests: 
+    testthat

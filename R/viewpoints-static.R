@@ -10,15 +10,17 @@ new_static_viewpoint <- function(label, alphabet_size, discrete, mapping) {
     stopifnot(alphabet_size == max(mapping))
     stopifnot(length(mapping) == hrep::alphabet_size("pc_chord"))
   }
-  new_viewpoint(label, alphabet_size, discrete, function(chord_ids, chords, continuations, ...) {
-    if (continuations) {
+  new_viewpoint(
+    label,
+    alphabet_size,
+    discrete,
+    f_obs = function(chord_ids, chords, ...)
+      mapping[chord_ids],
+    f_all = function(chord_ids, chords, ...)
       matrix(rep(mapping, times = length(chord_ids)),
              byrow = TRUE,
              nrow = length(chord_ids))
-    } else {
-      mapping[chord_ids]
-    }
-  })
+  )
 }
 
 new_static_viewpoint("pc_chord",

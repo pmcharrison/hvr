@@ -87,10 +87,16 @@ generate_mappings <- function() {
   incon <- memoise::memoise(incon::incon,
                             cache = memoise::cache_filesystem("cache/incon"))
   # voicings <- hvr::.pc_chord_ideal_voicings
-  voicings <- purrr::map(pc_chords, hrep::pi_chord)
-  consonance <- plyr::laply(voicings, incon, model = c("hutch_78_roughness",
-                                                       "har_18_harmonicity"),
-                            .progress = "text")
+
+  consonance <- pc_chords %>%
+    purrr::map(hrep::pc_chord_type) %>%
+    purrr::map(as.integer) %>%
+    purrr::map(`+`, 60L) %>%
+    purrr::map(hrep::pi_chord) %>%
+    plyr::laply(incon,
+                model = c("hutch_78_roughness",
+                          "har_18_harmonicity"),
+                .progress = "text")
 
   .map_pc_chord <- list(
     pc_chord_type_id = new_map$pc_chord_type(pc_chords), # alphabet: pc_chord_type
