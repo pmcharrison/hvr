@@ -46,20 +46,16 @@ get_viewpoint_matrix <- function(chord_ids,
 
   for (i in seq_along(viewpoints)) {
     vpt_i <- viewpoints[i]
-    res_i <- get_viewpoint(vpt_i)$fun(chord_ids = chord_ids,
-                                      chords = chords,
-                                      continuations = continuations)
-    stopifnot(is.integer(res_i) == discrete)
-    # tonics = tonics)
-    if (continuations)
-      res[i, , ] <- res_i else
-        res[i, ] <- res_i
+    if (continuations) {
+      res[i, , ] <- get_viewpoint(vpt_i)$f_all(chord_ids = chord_ids,
+                                               chords = chords)
+    } else {
+      res[i, ] <- get_viewpoint(vpt_i)$f_obs(chord_ids = chord_ids,
+                                             chords = chords)
+    }
   }
   res
 }
-
-# need_root_pcs <- function(viewpoints) FALSE
-# need_tonics <- function(viewpoints) FALSE
 
 .viewpoints <- list()
 
@@ -78,4 +74,5 @@ new_viewpoint <- function(label, alphabet_size, discrete, f_obs, f_all) {
     f_obs = f_obs,
     f_all = f_all
   )
+  .viewpoints <<- .viewpoints[order(names(.viewpoints))]
 }
