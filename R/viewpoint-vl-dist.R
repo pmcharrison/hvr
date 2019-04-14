@@ -27,6 +27,7 @@ new_viewpoint(
                                      preserve_bass = TRUE)
       }
     }
+    res
   },
   f_all = function(chord_ids, chords, ...) {
     res <- matrix(data = as.numeric(NA),

@@ -12,6 +12,7 @@ new_viewpoint(
         res[i] <- ((chords[[i]][1] - chords[[i - 1]][1]) %% 12L) + 1L
       }
     }
+    res
   },
   f_all = function(chords, chord_ids, ...) {
     res <- matrix(data = as.numeric(NA),
