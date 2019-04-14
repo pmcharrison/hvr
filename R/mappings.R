@@ -125,7 +125,7 @@ generate_mappings <- function() {
 
 transpose_pc_chord_id <- function(pc_chord_id, interval) {
   checkmate::qassert(interval, "X1")
-  .transpose_pc_chord_id[(interval %% 12L) + 1L, pc_chord_id]
+  hvr::.transpose_pc_chord_id[(interval %% 12L) + 1L, pc_chord_id]
 }
 
 # map_pc_chord <- function(pc_chord_id, to) {
