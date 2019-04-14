@@ -6,13 +6,8 @@ new_viewpoint(
   alphabet_size = 12,
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {
-    res <- rep(as.integer(NA), times = length(chord_ids))
-    if (length(chord_ids) > 1) {
-      for (i in seq(from = 2, to = length(chord_ids))) {
-        res[i] <- ((chords[[i]][1] - chords[[i - 1]][1]) %% 12L) + 1L
-      }
-    }
-    res
+    bass_pcs <- hvr::.map_pc_chord$bass_pc[chord_ids]
+    c(as.integer(NA), 1L + (diff(bass_pcs) %% 12L))
   },
   f_all = function(chords, chord_ids, ...) {
     res <- matrix(data = as.numeric(NA),

@@ -23,6 +23,7 @@ Collate:
     'utils-pipe.R'
     'viewpoints.R'
     'viewpoint-bass-int.R'
+    'viewpoint-root-int.R'
     'viewpoint-vl-dist.R'
     'viewpoints-dynamic.R'
     'viewpoints-static.R'
