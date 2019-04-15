@@ -1,3 +1,4 @@
+^data-raw$
 ^cache$
 ^LICENSE\.md$
 ^hvpt\.Rproj$

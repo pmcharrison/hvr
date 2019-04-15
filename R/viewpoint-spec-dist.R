@@ -32,7 +32,7 @@ new_spec_dist_viewpoint <- function(half_life) {
       if (length(chord_ids) > 1) {
         for (i in seq(from = 2, to = length(chord_ids))) {
           res[i, ] <- cosine_similarities(decay_spectra[[i - 1L]],
-                                          hvr::.map_pc_chord$milne_pc_spectrum)
+                                          hvrmap::map_pc_chord$milne_pc_spectrum)
 
         }
       }
@@ -44,19 +44,19 @@ new_spec_dist_viewpoint <- function(half_life) {
 get_spectra <- function(chord_ids) {
   purrr::map(
     chord_ids,
-    ~ hrep::.milne_pc_spectrum(hvr::.map_pc_chord$milne_pc_spectrum[., ])
+    ~ hrep::.milne_pc_spectrum(hvrmap::map_pc_chord$milne_pc_spectrum[., ])
   )
 }
 
 new_spec_dist_viewpoint(half_life = 3)
 
-.root_ints <- purrr::map(0:11, function(ref_root_pc) {
-  root_pcs <- hvr::.map_pc_chord$root_pc
-  rel_root_pcs <- (root_pcs - ref_root_pc) %% 12L
-  rel_root_pcs + 1L
-})
-
-root_ints <- function(ref_root_pc) {
-  checkmate::qassert(ref_root_pc, "X1[0,11]")
-  .root_ints[[ref_root_pc + 1L]]
-}
+# .root_ints <- purrr::map(0:11, function(ref_root_pc) {
+#   root_pcs <- hvrmap::map_pc_chord$root_pc
+#   rel_root_pcs <- (root_pcs - ref_root_pc) %% 12L
+#   rel_root_pcs + 1L
+# })
+#
+# root_ints <- function(ref_root_pc) {
+#   checkmate::qassert(ref_root_pc, "X1[0,11]")
+#   .root_ints[[ref_root_pc + 1L]]
+# }

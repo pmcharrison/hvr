@@ -68,11 +68,12 @@ new_viewpoint <- function(label, alphabet_size, discrete, f_obs, f_all) {
   stopifnot(is.function(f_obs))
   stopifnot(is.function(f_all))
   if (label %in% names(.viewpoints)) stop("viewpoint ", label, " already exists")
-  .viewpoints[[label]] <<- list(
-    alphabet_size = as.integer(alphabet_size),
-    discrete = discrete,
-    f_obs = f_obs,
-    f_all = f_all
-  )
+  .viewpoints[[label]] <<-
+    list(
+      alphabet_size = as.integer(alphabet_size),
+      discrete = discrete,
+      f_obs = f_obs,
+      f_all = f_all
+    )
   .viewpoints <<- .viewpoints[order(names(.viewpoints))]
 }

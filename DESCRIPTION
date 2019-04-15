@@ -13,13 +13,16 @@ Imports:
     devtools,
     parn88,
     hrep,
+    hvrmap,
     plyr,
     voicer,
     har18,
     R.utils,
-    memoise
+    memoise,
+    Rcpp
 Collate: 
-    'mappings.R'
+    'RcppExports.R'
+    'hvr-package.R'
     'utils-pipe.R'
     'viewpoints.R'
     'viewpoint-bass-int.R'
@@ -28,12 +31,14 @@ Collate:
     'viewpoint-root-int.R'
     'viewpoint-spec-dist.R'
     'viewpoint-vl-dist.R'
-    'viewpoints-dynamic.R'
     'viewpoints-static.R'
 Remotes:
     pmcharrison/parn88,
     pmcharrison/hrep,
     pmcharrison/voicer
-    pmcharrison/har18
+    pmcharrison/har18,
+    pmcharrison/hvrmap
 Suggests: 
     testthat
+LinkingTo: 
+    Rcpp
