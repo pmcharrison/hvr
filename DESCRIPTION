@@ -17,7 +17,8 @@ Imports:
     R.utils,
     memoise,
     Rcpp,
-    ramify
+    ramify,
+    specded
 Collate: 
     'RcppExports.R'
     'viewpoints.R'
@@ -34,7 +35,8 @@ Collate:
     'viewpoints-static.R'
 Remotes:
     pmcharrison/hrep,
-    pmcharrison/hvrmap
+    pmcharrison/hvrmap,
+    pmcharrison/specdec
 Suggests: 
     testthat
 LinkingTo: 
