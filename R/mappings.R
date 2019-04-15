@@ -46,6 +46,11 @@ new_map$transpose_pc_chord_id <- function(pc_chords) {
   x
 }
 
+new_map$milne_pc_spectrum <- function(pc_chords) {
+  message("Generating Milne pitch-class spectra...")
+  plyr::laply(pc_chords, hrep::milne_pc_spectrum, .progress = "text")
+}
+
 generate_ideal_voicings <- function() {
   message("Getting ideal pc_chord voicings...")
 
