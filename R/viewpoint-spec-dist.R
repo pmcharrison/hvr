@@ -49,14 +49,3 @@ get_spectra <- function(chord_ids) {
 }
 
 new_spec_dist_viewpoint(half_life = 3)
-
-# .root_ints <- purrr::map(0:11, function(ref_root_pc) {
-#   root_pcs <- hvrmap::map_pc_chord$root_pc
-#   rel_root_pcs <- (root_pcs - ref_root_pc) %% 12L
-#   rel_root_pcs + 1L
-# })
-#
-# root_ints <- function(ref_root_pc) {
-#   checkmate::qassert(ref_root_pc, "X1[0,11]")
-#   .root_ints[[ref_root_pc + 1L]]
-# }
