@@ -10,7 +10,7 @@ new_viewpoint(
     c(as.integer(NA), 1L + (diff(root_pcs) %% 12L))
   },
   f_all = function(chords, chord_ids, ...) {
-    res <- matrix(data = as.numeric(NA),
+    res <- matrix(data = as.integer(NA),
                   ncol = hrep::alphabet_size("pc_chord"),
                   nrow = length(chord_ids))
     if (length(chord_ids) > 1) {

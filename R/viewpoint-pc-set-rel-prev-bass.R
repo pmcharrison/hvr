@@ -14,7 +14,7 @@ new_viewpoint(
       hvrmap::map_pc_chord$pc_set_id[rel_chord_ids])
   },
   f_all = function(chords, chord_ids, ...) {
-    res <- matrix(data = as.numeric(NA),
+    res <- matrix(data = as.integer(NA),
                   ncol = hrep::alphabet_size("pc_chord"),
                   nrow = length(chord_ids))
     if (length(chord_ids) > 1) {

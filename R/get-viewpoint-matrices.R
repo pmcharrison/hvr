@@ -47,12 +47,61 @@ get_viewpoint_matrix <- function(chord_ids,
     if (continuations) {
       res[i, , ] <- vpt_i$f_all(chord_ids = chord_ids,
                                 chords = chords,
-                                verbose = verbose)
+                                verbose = verbose) %>%
+        check_viewpoint_output(discrete,
+                               continuations,
+                               length(chord_ids),
+                               name(vpt_i))
     } else {
       res[i, ] <- vpt_i$f_obs(chord_ids = chord_ids,
                               chords = chords,
-                              verbose = verbose)
+                              verbose = verbose) %>%
+        check_viewpoint_output(discrete,
+                               continuations,
+                               length(chord_ids),
+                               name(vpt_i))
     }
   }
+  stopifnot(if (discrete) is.integer(res) else is.numeric(res))
+  class(res) <- c(paste0(if (continuations) "continuation_" else "observed_",
+                         "viewpoints"),
+                  class(res))
   res
+}
+
+check_viewpoint_output <- function(x, discrete, continuations, seq_length, vp_name) {
+  if (discrete) {
+    if (!is.integer(x))
+      stop("discrete viewpoint '", vp_name, "' failed to return an integer output")
+  } else {
+    if (!is.numeric(x))
+      stop("continuous viewpoint '", vp_name, "' failed to return a numeric output")
+  }
+  if (continuations) {
+    if (ncol(x) != 24576L)
+      stop("problem with viewpoint '", vp_name, "': ",
+           "f_all must return a matrix with 24,576 columns, ",
+           "corresponding to the 24,576 possible pc_chords")
+  } else {
+    if (is.matrix(x) || length(x) != seq_length)
+      stop("problem with viewpoint '", vp_name, "': ",
+           "f_obs must return a vector with the same length as the input sequence")
+  }
+  x
+}
+
+#' @export
+print.observed_viewpoints <- function(x, ...) {
+  cat("Viewpoint matrix (observed events only), comprising a ")
+  ramify::pprint(x, ...)
+}
+
+#' @export
+print.continuation_viewpoints <- function(x, ...) {
+  cat("Viewpoint array:\n",
+      "  ",
+      dim(x)[1], " (viewpoints) x ",
+      dim(x)[2], " (observed events) x ",
+      dim(x)[3], " (possible continuations).\n",
+      sep = "")
 }
