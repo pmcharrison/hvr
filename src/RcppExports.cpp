@@ -5,34 +5,34 @@
 
 using namespace Rcpp;
 
-// change_num_notes__
-int change_num_notes__(NumericVector x, NumericVector y);
-RcppExport SEXP _hvr_change_num_notes__(SEXP xSEXP, SEXP ySEXP) {
+// cosine_similarity
+double cosine_similarity(const NumericVector& x, const NumericVector& y);
+RcppExport SEXP _hvr_cosine_similarity(SEXP xSEXP, SEXP ySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
-    rcpp_result_gen = Rcpp::wrap(change_num_notes__(x, y));
+    Rcpp::traits::input_parameter< const NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(cosine_similarity(x, y));
     return rcpp_result_gen;
 END_RCPP
 }
-// change_num_notes_
-IntegerVector change_num_notes_(List contexts, NumericVector continuation);
-RcppExport SEXP _hvr_change_num_notes_(SEXP contextsSEXP, SEXP continuationSEXP) {
+// cosine_similarities
+NumericVector cosine_similarities(const NumericVector& vector, const NumericMatrix& vectors);
+RcppExport SEXP _hvr_cosine_similarities(SEXP vectorSEXP, SEXP vectorsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type contexts(contextsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type continuation(continuationSEXP);
-    rcpp_result_gen = Rcpp::wrap(change_num_notes_(contexts, continuation));
+    Rcpp::traits::input_parameter< const NumericVector& >::type vector(vectorSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type vectors(vectorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cosine_similarities(vector, vectors));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_hvr_change_num_notes__", (DL_FUNC) &_hvr_change_num_notes__, 2},
-    {"_hvr_change_num_notes_", (DL_FUNC) &_hvr_change_num_notes_, 2},
+    {"_hvr_cosine_similarity", (DL_FUNC) &_hvr_cosine_similarity, 2},
+    {"_hvr_cosine_similarities", (DL_FUNC) &_hvr_cosine_similarities, 2},
     {NULL, NULL, 0}
 };
 
