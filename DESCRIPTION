@@ -11,20 +11,18 @@ RoxygenNote: 6.1.1
 Imports: 
     magrittr,
     devtools,
-    parn88,
     hrep,
     hvrmap,
     plyr,
-    voicer,
-    har18,
     R.utils,
     memoise,
     Rcpp
 Collate: 
     'RcppExports.R'
+    'viewpoints.R'
+    'get-viewpoint-matrices.R'
     'hvr-package.R'
     'utils-pipe.R'
-    'viewpoints.R'
     'viewpoint-bass-int.R'
     'viewpoint-pc-chord-rel-prev-bass.R'
     'viewpoint-pc-set-rel-prev-bass.R'
@@ -33,10 +31,7 @@ Collate:
     'viewpoint-vl-dist.R'
     'viewpoints-static.R'
 Remotes:
-    pmcharrison/parn88,
     pmcharrison/hrep,
-    pmcharrison/voicer
-    pmcharrison/har18,
     pmcharrison/hvrmap
 Suggests: 
     testthat

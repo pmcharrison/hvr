@@ -2,7 +2,7 @@
 NULL
 
 new_viewpoint(
-  label = "pc_chord_rel_prev_bass",
+  name = "pc_chord_rel_prev_bass",
   alphabet_size = hrep::alphabet_size("pc_chord"),
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {
@@ -23,7 +23,7 @@ new_viewpoint(
     }
     res
   }
-)
+) %>% register_viewpoint()
 
 .pc_chord_rel_prev_bass <- purrr::map(0:11, function(ref_bass_pc) {
   chord_ids <- seq_len(hrep::alphabet_size("pc_chord"))

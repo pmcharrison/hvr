@@ -2,7 +2,7 @@
 NULL
 
 new_viewpoint(
-  label = "root_int",
+  name = "root_int",
   alphabet_size = 12,
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {
@@ -21,7 +21,7 @@ new_viewpoint(
     }
     res
   }
-)
+) %>% register_viewpoint()
 
 .root_ints <- purrr::map(0:11, function(ref_root_pc) {
   root_pcs <- hvrmap::map_pc_chord$root_pc

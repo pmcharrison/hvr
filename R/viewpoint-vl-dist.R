@@ -15,7 +15,7 @@ min_vl_dists <- function(...) {
 }
 
 new_viewpoint(
-  label = "vl_dist",
+  name = "vl_dist",
   alphabet_size = NA,
   discrete = FALSE,
   f_obs = function(chord_ids, chords, ...) {
@@ -29,17 +29,24 @@ new_viewpoint(
     }
     res
   },
-  f_all = function(chord_ids, chords, ...) {
+  f_all = function(chord_ids, chords, verbose, ...) {
     res <- matrix(data = as.numeric(NA),
                   ncol = hrep::alphabet_size("pc_chord"),
                   nrow = length(chord_ids))
     if (length(chord_ids) > 1) {
+      if (verbose) {
+        message("Computing voice-leading distances...")
+        pb <- utils::txtProgressBar(
+          min = 1, max = length(chord_ids), style = 3)
+      }
       for (i in seq(from = 2, to = length(chord_ids))) {
         res[i, ] <- min_vl_dists(chords[i - 1],
                                  hrep::pc_chord_alphabet$by_id,
                                  preserve_bass = TRUE)
+        if (verbose) utils::setTxtProgressBar(pb, i)
       }
+      if (verbose) close(pb)
     }
     res
   }
-)
+) %>% register_viewpoint()

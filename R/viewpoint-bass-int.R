@@ -2,7 +2,7 @@
 NULL
 
 new_viewpoint(
-  label = "bass_int",
+  name = "bass_int",
   alphabet_size = 12,
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {
@@ -21,7 +21,7 @@ new_viewpoint(
     }
     res
   }
-)
+) %>% register_viewpoint()
 
 .bass_ints <- purrr::map(0:11, function(ref_bass_pc) {
   bass_pcs <- hvrmap::map_pc_chord$bass_pc
