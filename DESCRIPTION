@@ -23,9 +23,10 @@ Imports:
     withr,
     tibble
 Collate: 
+    '1-compute-viewpoints.R'
+    '2-compute-ppm-analyses.R'
+    '3-viewpoint-regression.R'
     'RcppExports.R'
-    'compute-ppm-analyses.R'
-    'compute-viewpoints.R'
     'viewpoints.R'
     'get-viewpoint-matrices.R'
     'hvr-package.R'
