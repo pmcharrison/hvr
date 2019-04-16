@@ -16,14 +16,14 @@ compute_viewpoints <- function(corpus,
 
   R.utils::mkdirs(dir)
   saveRDS(corpus, file.path(dir, "corpus.rds"))
-  # seq_pretrain <- setdiff(seq_along(corpus), seq_test)
 
   yaml::write_yaml(
     list(
       corpus_size = length(corpus),
       seq_test = seq_test,
-      # seq_pretrain = seq_pretrain,
-      discrete_viewpoints = Filter(is_discrete, viewpoints) %>% purrr::map(name),
+      seq_pretrain = setdiff(seq_along(corpus), seq_test),
+      discrete_viewpoints = Filter(is_discrete, viewpoints) %>%
+        purrr::map(~ .[c("name", "alphabet_size")]),
       continuous_viewpoints = Filter(Negate(is_discrete), viewpoints) %>% purrr::map(name)
     ),
     file.path(dir, "about.yaml")

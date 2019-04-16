@@ -7,13 +7,12 @@
 compute_ppm_analyses(parent_dir, viewpoint_dir = file.path(parent_dir,
   "0-viewpoints"), output_dir = file.path(parent_dir, "1-ppm"),
   stm_opt = stm_options(), ltm_opt = ltm_options(),
-  seq_test = yaml::read_yaml(file.path(viewpoint_dir,
-  "about.yaml"))$seq_test,
-  seq_train_only = yaml::read_yaml(file.path(viewpoint_dir,
-  "about.yaml"))$seq_train_only,
+  seq_test_folds = list(yaml::read_yaml(file.path(viewpoint_dir,
+  "about.yaml"))$seq_test),
+  seq_pretrain = yaml::read_yaml(file.path(viewpoint_dir,
+  "about.yaml"))$seq_pretrain,
   viewpoints = yaml::read_yaml(file.path(viewpoint_dir,
-  "about.yaml"))$discrete_viewpoints, folds = cross_validate(seq_test,
-  folds = 1))
+  "about.yaml"))$discrete_viewpoints)
 }
 \description{
 This function computes PPM analyses.
