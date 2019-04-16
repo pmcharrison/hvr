@@ -21,7 +21,8 @@ Imports:
     specdec,
     yaml,
     withr,
-    tibble
+    tibble,
+    dplyr
 Collate: 
     '1-compute-viewpoints.R'
     '2-compute-ppm-analyses.R'
