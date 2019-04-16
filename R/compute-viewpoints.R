@@ -16,24 +16,23 @@ compute_viewpoints <- function(corpus,
 
   R.utils::mkdirs(dir)
   saveRDS(corpus, file.path(dir, "corpus.rds"))
-  seq_train_only <- setdiff(seq_along(corpus), seq_test)
+  # seq_pretrain <- setdiff(seq_along(corpus), seq_test)
 
   yaml::write_yaml(
     list(
       corpus_size = length(corpus),
       seq_test = seq_test,
-      seq_train_only = seq_train_only,
+      # seq_pretrain = seq_pretrain,
       discrete_viewpoints = Filter(is_discrete, viewpoints) %>% purrr::map(name),
       continuous_viewpoints = Filter(Negate(is_discrete), viewpoints) %>% purrr::map(name)
     ),
     file.path(dir, "about.yaml")
   )
 
-  compute_train_only_viewpoints(seq_train_only,
-                                viewpoints,
-                                verbose,
-                                corpus,
-                                dir)
+  compute_training_viewpoints(viewpoints,
+                              verbose,
+                              corpus,
+                              dir)
   compute_test_only_viewpoints(seq_test,
                                viewpoints,
                                verbose,
@@ -41,20 +40,19 @@ compute_viewpoints <- function(corpus,
                                dir)
 }
 
-compute_train_only_viewpoints <- function(seq_train_only,
-                                          viewpoints,
-                                          verbose,
-                                          corpus,
-                                          dir) {
-  if (verbose) message("Computing viewpoints for train-only sequences...")
-  seq_train_only %>%
-    magrittr::set_names(., .) %>%
-    purrr::map(~ corpus[[.]]) %>%
-    plyr::llply(get_viewpoint_matrices,
-                viewpoints = viewpoints,
-                continuations = FALSE,
-                .progress = if (verbose) "text" else "none") %>%
-    saveRDS(file.path(dir, "viewpoints-train-only.rds"))
+compute_training_viewpoints <- function(viewpoints,
+                                        verbose,
+                                        corpus,
+                                        dir) {
+  if (verbose) message("Computing training viewpoints...")
+  # seq_along(corpus) %>%
+  # magrittr::set_names(., .) %>%
+  plyr::llply(corpus,
+              get_viewpoint_matrices,
+              viewpoints = viewpoints,
+              continuations = FALSE,
+              .progress = if (verbose) "text" else "none") %>%
+    saveRDS(file.path(dir, "viewpoints-training.rds"))
 }
 
 compute_test_only_viewpoints <- function(seq_test,
@@ -62,7 +60,7 @@ compute_test_only_viewpoints <- function(seq_test,
                                          verbose,
                                          corpus,
                                          dir) {
-  R.utils::mkdirs(file.path(dir, "viewpoints-test-seq"))
+  R.utils::mkdirs(file.path(dir, "viewpoints-test"))
 
   for (i in seq_along(seq_test)) {
     if (verbose) message("Analysing test sequence ", i,
@@ -74,6 +72,6 @@ compute_test_only_viewpoints <- function(seq_test,
       continuations = TRUE,
       verbose = verbose
     ) %>%
-      saveRDS(file.path(dir, "viewpoints-test-seq", paste0(seq_id, ".rds")))
+      saveRDS(file.path(dir, "viewpoints-test", paste0(seq_id, ".rds")))
   }
 }
