@@ -16,6 +16,8 @@ compute_ppm_analyses <- function(
                   seq_test_folds, seq_pretrain, viewpoints)
   ppm_write_yaml(output_dir, stm_opt, ltm_opt, seq_test_folds, seq_pretrain, viewpoints)
   model_spec <- ppm_identify_models(stm_opt, ltm_opt, viewpoints, output_dir)
+  viewpoints_observed <- readRDS(file.path(viewpoint_dir, "viewpoints-training.rds")) %>%
+    purrr::map("discrete")
   purrr::map(seq_along(seq_test_folds),
              ppm_fold,
              folds = seq_test_folds,
@@ -23,17 +25,22 @@ compute_ppm_analyses <- function(
              model_spec = model_spec,
              viewpoints = viewpoints,
              viewpoint_dir = viewpoint_dir,
+             viewpoints_observed = viewpoints_observed,
              stm_opt = stm_opt,
              ltm_opt = ltm_opt,
              output_dir = output_dir)
+  invisible()
 }
 
-ppm_fold <- function(i, folds, seq_pretrain, model_spec, viewpoints, viewpoint_dir,
+ppm_fold <- function(i, folds, seq_pretrain, model_spec,
+                     viewpoints,
+                     viewpoint_dir,
+                     viewpoints_observed,
                      stm_opt, ltm_opt, output_dir) {
   message("Computing PPM analyses for fold ", i, " out of ", length(folds), "...")
 
   training <- c(get_training(folds, i), seq_pretrain) %>% sort()
-  test <- get_test(folds, i)
+  test_seq <- get_test(folds, i)
 
   message("  Pretraining long-term models...")
   ltm_models <- if (ltm_opt$enabled) {
@@ -41,34 +48,35 @@ ppm_fold <- function(i, folds, seq_pretrain, model_spec, viewpoints, viewpoint_d
       magrittr::set_names(., purrr::map_chr(., "name")) %>%
       plyr::llply(ppm_train,
                   training = training,
-                  viewpoint_dir = viewpoint_dir,
+                  viewpoints_observed = viewpoints_observed,
                   ltm_opt = ltm_opt,
                   .progress = "text")
   }
 
-  message("  Predicting test sequences...")
-  test %>%
-    plyr::l_ply(ppm_test,
-                model_spec = model_spec,
-                viewpoints = viewpoints,
-                viewpoint_dir = viewpoint_dir,
-                ltm_models = ltm_models,
-                stm_opt = stm_opt,
-                output_dir = output_dir,
-                .progress = "text")
+  purrr::map2(test_seq,
+              seq_along(test_seq),
+              ppm_test,
+              num_seq = length(test_seq),
+              model_spec = model_spec,
+              viewpoints = viewpoints,
+              viewpoint_dir = viewpoint_dir,
+              viewpoints_observed = viewpoints_observed,
+              ltm_models = ltm_models,
+              stm_opt = stm_opt,
+              output_dir = output_dir)
 }
 
-ppm_test <- function(seq_id, model_spec,
-                     viewpoints, viewpoint_dir,
+ppm_test <- function(seq_id, i, num_seq, model_spec,
+                     viewpoints, viewpoint_dir, viewpoints_observed,
                      ltm_models, stm_opt, output_dir) {
   stopifnot(length(viewpoints) == length(ltm_models),
             identical(purrr::map_chr(viewpoints, "name"), names(ltm_models)))
 
   file <- file.path(viewpoint_dir, "viewpoints-test", paste0(seq_id, ".rds"))
   if (!file.exists(file)) stop("failed to find viewpoint file ", file)
-  dat <- readRDS(file)$discrete
+  viewpoints_continuations <- readRDS(file)$discrete
 
-  num_events <- dim(dat)[2]
+  num_events <- dim(viewpoints_continuations)[2]
 
   res <- array(dim = c(nrow(model_spec),
                        num_events,
@@ -77,23 +85,51 @@ ppm_test <- function(seq_id, model_spec,
   dimnames(res) <- list(model_spec$label)
   class(res) <- c("ppm_output", "array")
 
-  purrr::pmap(model_spec, function(id, class, viewpoint, alphabet_size, label) {
-    res[i, , ] <<- ppm_test_viewpoint(
-      viewpoint_values = dat[viewpoint, , ],
-      viewpoint_alphabet_size = alphabet_size,
-      mod_class = class,
-      ltm_mod = ltm_models[[viewpoint]]
+  message("  Predicting test sequence ", i, " out of ", num_seq, "...")
+  plyr::m_ply(model_spec, function(id, class, viewpoint, alphabet_size, label) {
+    res[id, , ] <<- ppm_test_viewpoint(
+      viewpoint_observed = viewpoints_observed[[seq_id]][viewpoint, ],
+      viewpoint_continuations = viewpoints_continuations[viewpoint, , ],
+      mod = if (class == "ltm") ltm_models[[viewpoint]] else
+        init_ppm_mod(alphabet_size, stm_opt),
+      mod_class = class
     )
-  })
+  }, .progress = "text")
+
+  R.utils::mkdirs(file.path(output_dir, "output"))
+  saveRDS(res, file.path(output_dir, "output", paste0(seq_id, ".rds")))
 }
 
-ppm_test_viewpoint <- function(viewpoint_values,
-                               viewpoint_alphabet_size,
-                               mod_class,
-                               ltm_mod) {
+ppm_test_viewpoint <- function(viewpoint_observed,
+                               viewpoint_continuations,
+                               mod,
+                               mod_class) {
   stopifnot(mod_class %in% c("stm", "ltm"))
-  browser()
+  train <- mod_class == "stm"
+  not_na <- which(!is.na(viewpoint_observed))
+  viewpoint_predictions <- ppm::model_seq(model = mod,
+                                          seq = viewpoint_observed[not_na],
+                                          train = train)$distribution
+  projected_predictions <- matrix(data = as.numeric(NA),
+                                  nrow = nrow(viewpoint_continuations),
+                                  ncol = ncol(viewpoint_continuations))
+  purrr::map2(seq_along(not_na), not_na, function(prediction_id, event_id) {
+    projected_predictions[event_id, ] <<- project_to_basic(
+      viewpoint_predictions[[prediction_id]],
+      viewpoint_continuations[event_id, ]
+    )})
+  projected_predictions
+}
 
+project_to_basic <- function(vp_dist, vp_vals) {
+  checkmate::qassert(vp_dist, "N")
+  checkmate::qassert(vp_vals, "X[1,)")
+  if (any(vp_vals > length(vp_dist))) stop("invalid viewpoint value")
+  vp_counts <- tabulate(vp_vals, nbins = length(vp_dist))
+  weights <- (vp_dist / vp_counts)[vp_vals]
+  s <- sum(weights)
+  if (s == 0) stop("no available viewpoint values had non-zero probabilities")
+  weights / s
 }
 
 #' @export
@@ -106,10 +142,9 @@ print.ppm_output <- function(x, ...) {
       sep = "")
 }
 
-ppm_train <- function(viewpoint, training, viewpoint_dir, ltm_opt) {
+ppm_train <- function(viewpoint, training, viewpoints_observed, ltm_opt) {
   checkmate::qassert(training, "X")
-  dat <- readRDS(file.path(viewpoint_dir, "viewpoints-training.rds")) %>%
-    purrr::map("discrete") %>%
+  dat <- viewpoints_observed %>%
     purrr::map(~ .[viewpoint$name, ]) %>%
     purrr::map(na.omit)
   mod <- init_ppm_mod(viewpoint$alphabet_size, ltm_opt)
@@ -194,7 +229,7 @@ stm_options <- function(enabled = TRUE,
                         shortest_deterministic = TRUE,
                         exclusion = TRUE,
                         update_exclusion = TRUE,
-                        escape = "x") {
+                        escape = "ax") {
   as.list(environment())
 }
 
