@@ -15,8 +15,8 @@ new_spec_dist_viewpoint <- function(half_life) {
       res <- rep(as.numeric(NA), length = length(chord_ids))
       if (length(chord_ids) > 1L) {
         for (i in seq(from = 2L, to = length(chord_ids))) {
-          hrep::cosine_similarity(decay_spectra[[i - 1L]],
-                                  spectra[[i]])
+          res[i] <- hrep::cosine_similarity(decay_spectra[[i - 1L]],
+                                            spectra[[i]])
         }
       }
       res

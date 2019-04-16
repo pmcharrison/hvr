@@ -18,13 +18,14 @@ Imports:
     memoise,
     Rcpp,
     ramify,
-    specded
+    specdec,
+    yaml
 Collate: 
     'RcppExports.R'
     'viewpoints.R'
     'get-viewpoint-matrices.R'
     'hvr-package.R'
-    'print.R'
+    'top-level.R'
     'utils-pipe.R'
     'viewpoint-bass-int.R'
     'viewpoint-pc-chord-rel-prev-bass.R'
