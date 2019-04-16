@@ -71,10 +71,3 @@ compute_test_only_viewpoints <- function(seq_test,
       saveRDS(file.path(dir, "viewpoints-test-seq", paste0(seq_id, ".rds")))
   }
 }
-
-#' @export
-compute_model_matrices <- function(dir,
-                                   stm = TRUE,
-                                   ltm = TRUE) {
-
-}
