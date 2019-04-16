@@ -1,6 +1,7 @@
 #' @export
 compute_viewpoints <- function(corpus,
-                               dir,
+                               parent_dir,
+                               dir = file.path(parent_dir, "0-viewpoints"),
                                seq_test = seq_along(corpus),
                                viewpoints = hvr::hvr_viewpoints,
                                verbose = TRUE) {
@@ -15,8 +16,8 @@ compute_viewpoints <- function(corpus,
 
   # Main
   R.utils::mkdirs(dir)
-  seq_train_only <- setdiff(seq_along(corpus), seq_test)
   saveRDS(corpus, file.path(dir, "corpus.rds"))
+  seq_train_only <- setdiff(seq_along(corpus), seq_test)
   yaml::write_yaml(list(corpus_size = length(corpus),
                         seq_test = seq_test,
                         seq_train_only = seq_train_only,
@@ -39,7 +40,6 @@ compute_train_only_viewpoints <- function(seq_train_only,
                                           verbose,
                                           corpus,
                                           dir) {
-  R.utils::mkdirs(file.path(dir, "viewpoints"))
   if (verbose) message("Computing viewpoints for train-only sequences...")
   seq_train_only %>%
     magrittr::set_names(., .) %>%
@@ -48,7 +48,7 @@ compute_train_only_viewpoints <- function(seq_train_only,
                 viewpoints = viewpoints,
                 continuations = FALSE,
                 .progress = if (verbose) "text" else "none") %>%
-    saveRDS(file.path(dir, "viewpoints", "train-only.rds"))
+    saveRDS(file.path(dir, "viewpoints-train-only.rds"))
 }
 
 compute_test_only_viewpoints <- function(seq_test,
@@ -56,7 +56,7 @@ compute_test_only_viewpoints <- function(seq_test,
                                          verbose,
                                          corpus,
                                          dir) {
-  R.utils::mkdirs(file.path(dir, "viewpoints", "test"))
+  R.utils::mkdirs(file.path(dir, "viewpoints-test-seq"))
 
   for (i in seq_along(seq_test)) {
     if (verbose) message("Analysing test sequence ", i,
@@ -68,6 +68,13 @@ compute_test_only_viewpoints <- function(seq_test,
       continuations = TRUE,
       verbose = verbose
     ) %>%
-      saveRDS(file.path(dir, "viewpoints", "test", paste0(seq_id, ".rds")))
+      saveRDS(file.path(dir, "viewpoints-test-seq", paste0(seq_id, ".rds")))
   }
+}
+
+#' @export
+compute_model_matrices <- function(dir,
+                                   stm = TRUE,
+                                   ltm = TRUE) {
+
 }
