@@ -14,15 +14,21 @@ compute_viewpoints <- function(corpus,
   stopifnot(!any(seq_test > length(corpus)))
   stopifnot(all(purrr::map_lgl(viewpoints, is_viewpoint)))
 
-  # Main
   R.utils::mkdirs(dir)
   saveRDS(corpus, file.path(dir, "corpus.rds"))
   seq_train_only <- setdiff(seq_along(corpus), seq_test)
-  yaml::write_yaml(list(corpus_size = length(corpus),
-                        seq_test = seq_test,
-                        seq_train_only = seq_train_only,
-                        viewpoints = purrr::map_chr(viewpoints, name)),
-                   file.path(dir, "about.yaml"))
+
+  yaml::write_yaml(
+    list(
+      corpus_size = length(corpus),
+      seq_test = seq_test,
+      seq_train_only = seq_train_only,
+      discrete_viewpoints = Filter(is_discrete, viewpoints) %>% purrr::map(name),
+      continuous_viewpoints = Filter(Negate(is_discrete), viewpoints) %>% purrr::map(name)
+    ),
+    file.path(dir, "about.yaml")
+  )
+
   compute_train_only_viewpoints(seq_train_only,
                                 viewpoints,
                                 verbose,
