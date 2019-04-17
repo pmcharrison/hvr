@@ -13,8 +13,11 @@ viewpoint_regression <- function(
   corpus <- get_regression_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
   predictors <- get_regression_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
 
+  c(continuous_model_matrix, poly_coefs) %<-%
+    get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree)
+
   model_matrix <- get_model_matrix(
-    get_continuous_model_matrix(corpus, predictors, viewpoint_dir),
+    continuous_model_matrix,
     get_discrete_model_matrix(corpus, predictors, ppm_dir)
   )
 
@@ -27,13 +30,76 @@ list_test_seq <- function(ppm_dir) {
     unlist() %>% sort()
 }
 
-get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir) {
+get_model_matrix <- function(continuous_model_matrix,
+                             discrete_model_matrix) {
+  id_vars <- c("seq_id", "event_id", "symbol")
+  stopifnot(identical(
+    as.data.frame(continuous_model_matrix[, id_vars]),
+    as.data.frame(discrete_model_matrix[, id_vars])
+  ))
+  dplyr::bind_cols(
+    continuous_model_matrix,
+    dplyr::select(discrete_model_matrix, - id_vars)
+  )
+}
+
+get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_degree) {
   purrr::map_dfr(sort(unique(corpus$seq_id)), function(i) {
     corpus %>%
       dplyr::filter(.data$seq_id == i) %>%
       seq_continuous_model_matrix(predictors, viewpoint_dir)
   }) %>%
-    add_polynomials(predictors)
+    add_polynomials(predictors, poly_degree)
+}
+
+seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir) {
+  viewpoints <- predictors %>%
+    dplyr::filter(!.data$discrete) %>%
+    dplyr::pull(.data$viewpoint) %>%
+    unique()
+  seq_id <- unique(events$seq_id)
+  stopifnot(!anyDuplicated(viewpoints),
+            length(seq_id) == 1)
+  raw <- readRDS(file.path(viewpoint_dir,
+                           "viewpoints-test",
+                           paste0(seq_id, ".rds")))$continuous
+  purrr::pmap_dfr(events, function(seq_id, event_id, symbol) {
+    dplyr::bind_cols(
+      tibble(
+        seq_id,
+        event_id,
+        symbol = seq_len(hrep::alphabet_size("pc_chord")),
+        observed = symbol == !!symbol
+      ),
+      t(raw[viewpoints, event_id, ]) %>%
+        tibble::as_tibble() %>%
+        dplyr::mutate_all(~ dplyr::if_else(is.na(.), 0, .))
+    )
+  })
+}
+
+add_polynomials <- function(continuous_model_matrix, predictors, poly_degree) {
+  viewpoints <- predictors %>%
+    dplyr::filter(!.data$discrete) %>%
+    dplyr::pull(.data$viewpoint) %>%
+    unique() %>%
+    magrittr::set_names(., .)
+  res <- purrr::map(viewpoints, function(v) {
+    raw <- stats::poly(continuous_model_matrix[[v]], degree = poly_degree)
+    vals <- tibble::as_tibble(raw)
+    names(vals) <- purrr::map_chr(seq_len(poly_degree), function(i) {
+      predictors %>%
+        dplyr::filter(.data$viewpoint == v & .data$poly_degree == i) %>%
+        dplyr::pull(.data$label)
+    })
+    coefs <- attr(raw, "coefs")
+    list(vals = vals, coefs = coefs)
+  })
+  vals <- purrr::map(res, "vals")
+  list(
+    continuous_model_matrix = dplyr::bind_cols(continuous_model_matrix, vals),
+    coefs = purrr::map(res, "coefs")
+  )
 }
 
 get_discrete_model_matrix <- function(corpus, predictors, ppm_dir) {
@@ -42,16 +108,28 @@ get_discrete_model_matrix <- function(corpus, predictors, ppm_dir) {
       dplyr::filter(.data$seq_id == i) %>%
       seq_discrete_model_matrix(predictors, ppm_dir)
   })
-  browser()
 }
 
 seq_discrete_model_matrix <- function(events, predictors, ppm_dir) {
-  browser()
-  seq_id <- events$seq_id %>% unique()
-  checkmate::qassert(seq_id, "X1")
-  input <- readRDS(file.path(ppm_dir, "output", paste0(seq_id, ".rds")))
-  refined <- input[]
-  browser()
+  models <- predictors %>%
+    dplyr::filter(.data$discrete) %>%
+    dplyr::pull(.data$label) %>%
+    unique()
+  seq_id <- unique(events$seq_id)
+  stopifnot(!anyDuplicated(models),
+            length(seq_id) == 1)
+  raw <- readRDS(file.path(ppm_dir, "output", paste0(seq_id, ".rds")))
+
+  purrr::pmap_dfr(events, function(seq_id, event_id, symbol) {
+    cbind(
+      seq_id, event_id,
+      symbol = seq_len(hrep::alphabet_size("pc_chord")),
+      t(raw[models, event_id, ]) %>%
+        tibble::as_tibble() %>%
+        dplyr::mutate_all(~ dplyr::if_else(is.na(.), 1, .)) %>%
+        dplyr::mutate_all(~ - log2(.))
+    ) %>% tibble::as_tibble()
+  })
 }
 
 # seq_model_matrix <- function(events, predictors, viewpoint_dir, ppm_dir) {

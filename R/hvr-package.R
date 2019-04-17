@@ -7,3 +7,6 @@ NULL
 
 #' @importFrom tibble tibble
 NULL
+
+#' @importFrom zeallot %<-%
+NULL
