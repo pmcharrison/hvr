@@ -33,25 +33,23 @@ conduct_regression <- function(model_matrix, predictors) {
     purrr::map(dplyr::select, predictors$label) %>%
     purrr::map(as.matrix)
 
-
   message("Fitting conditional logit model...")
 
-  browser()
+  x <- optim(par = rep(0, times = nrow(predictors)),
+             fn = cost,
+             gr = gradient,
+             method = "BFGS",
+             observation_matrix = observation_matrix,
+             continuation_matrices = continuation_matrices,
+             control = list(trace = 6))
 
-  m <- predictors$label %>%
-    # setdiff(., "ltm_pc_set") %>%
-    # setdiff(., "stm_bass_pc") %>%
-    # setdiff(., "ltm_bass_pc") %>%
-    # setdiff(., "stm_pc_set") %>%
-    # sprintf("scale(%s)", .) %>%
-    paste(collapse = " + ") %>%
-    sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
-    as.formula() %>%
-    mclogit::mclogit(data = model_matrix,
-                     start = c(1, 1),  #rep(1, times = nrow(predictors)),
-                     control = mclogit::mclogit.control(trace = TRUE))
-
-  m
+  list(par = x$par %>% magrittr::set_names(predictors$label),
+       cost = list(
+         corpus_nats = x$value,
+         corpus_bits = log2(exp(1)) * x$value,
+         event_nats = x$value / nrow(observation_matrix),
+         event_bits = log2(exp(1)) * x$value / nrow(observation_matrix)
+       )
 }
 
 conduct_regression_old <- function(model_matrix, predictors) {
