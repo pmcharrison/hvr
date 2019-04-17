@@ -26,7 +26,8 @@ Imports:
 Collate: 
     '1-compute-viewpoints.R'
     '2-compute-ppm-analyses.R'
-    '3-viewpoint-regression.R'
+    '3-model-matrix.R'
+    '4-viewpoint-regression.R'
     'RcppExports.R'
     'viewpoints.R'
     'get-viewpoint-matrices.R'

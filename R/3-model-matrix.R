@@ -1,4 +1,4 @@
-viewpoint_model_matrix <- function(
+compute_model_matrix <- function(
   parent_dir,
   max_sample = 1e4,
   sample_seed = 1,
@@ -9,9 +9,15 @@ viewpoint_model_matrix <- function(
   viewpoints = list_viewpoints(viewpoint_dir),
   test_seq = list_test_seq(ppm_dir)
 ) {
+  checkmate::qassert(max_sample, "X1[50,)")
+  max_sample <- as.integer(max_sample)
   checkmate::qassert(poly_degree, "X1[1,)")
   corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
   predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
+
+  R.utils::mkdirs(output_dir)
+  write_model_matrix_yaml(max_sample, sample_seed, poly_degree, viewpoints,
+                          output_dir)
 
   c(continuous_model_matrix, poly_coefs) %<-%
     get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree)
@@ -21,7 +27,20 @@ viewpoint_model_matrix <- function(
     get_discrete_model_matrix(corpus, predictors, ppm_dir)
   )
 
-  browser()
+  saveRDS(corpus, file.path(output_dir, "corpus.rds"))
+  saveRDS(predictors, file.path(output_dir, "predictors.rds"))
+  saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))
+}
+
+write_model_matrix_yaml <- function(max_sample, sample_seed, poly_degree, viewpoints,
+                                    output_dir) {
+  list(
+    max_sample = max_sample,
+    sample_seed = sample_seed,
+    poly_degree = poly_degree,
+    viewpoints = viewpoints
+  ) %>%
+    yaml::write_yaml(file.path(output_dir, "about.yaml"))
 }
 
 
