@@ -1,17 +1,17 @@
-viewpoint_regression <- function(
+viewpoint_model_matrix <- function(
   parent_dir,
   max_sample = 1e4,
   sample_seed = 1,
   poly_degree = 3L,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
-  output_dir = file.path(parent_dir, "2-regression"),
+  output_dir = file.path(parent_dir, "2-model-matrix"),
   viewpoints = list_viewpoints(viewpoint_dir),
   test_seq = list_test_seq(ppm_dir)
 ) {
   checkmate::qassert(poly_degree, "X1[1,)")
-  corpus <- get_regression_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
-  predictors <- get_regression_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
+  corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
+  predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
 
   c(continuous_model_matrix, poly_coefs) %<-%
     get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree)
@@ -44,11 +44,13 @@ get_model_matrix <- function(continuous_model_matrix,
 }
 
 get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_degree) {
-  purrr::map_dfr(sort(unique(corpus$seq_id)), function(i) {
+  message("Getting model matrix for continuous viewpoints...")
+  plyr::llply(sort(unique(corpus$seq_id)), function(i) {
     corpus %>%
       dplyr::filter(.data$seq_id == i) %>%
       seq_continuous_model_matrix(predictors, viewpoint_dir)
-  }) %>%
+  }, .progress = "text") %>%
+    dplyr::bind_rows() %>%
     add_polynomials(predictors, poly_degree)
 }
 
@@ -103,11 +105,13 @@ add_polynomials <- function(continuous_model_matrix, predictors, poly_degree) {
 }
 
 get_discrete_model_matrix <- function(corpus, predictors, ppm_dir) {
-  purrr::map_dfr(sort(unique(corpus$seq_id)), function(i) {
+  message("Getting model matrix for discrete viewpoints...")
+  plyr::llply(sort(unique(corpus$seq_id)), function(i) {
     corpus %>%
       dplyr::filter(.data$seq_id == i) %>%
       seq_discrete_model_matrix(predictors, ppm_dir)
-  })
+  }, .progress = "text") %>%
+    dplyr::bind_rows()
 }
 
 seq_discrete_model_matrix <- function(events, predictors, ppm_dir) {
@@ -132,20 +136,7 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir) {
   })
 }
 
-# seq_model_matrix <- function(events, predictors, viewpoint_dir, ppm_dir) {
-#   dplyr::bind_cols(
-#     events,
-#     seq_discrete_model_matrix(events,
-#                               predictors %>% dplyr::filter(.data$discrete),
-#                               ppm_dir),
-#     seq_continuous_model_matrix(events,
-#                                 predictors %>% dplyr::filter(!.data$discrete),
-#                                 viewpoint_dir)
-#   )
-#   browser()
-# }
-
-get_regression_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly_degree) {
+get_model_matrix_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly_degree) {
   discrete <- readr::read_csv(file.path(ppm_dir, "models.csv"), col_types = readr::cols()) %>%
     tibble::add_column(poly_degree = as.integer(NA), .after = 3L) %>%
     tibble::add_column(discrete = TRUE, .before = 1L) %>%
@@ -169,7 +160,7 @@ list_viewpoints <- function(viewpoint_dir) {
     yaml$continuous) %>% sort()
 }
 
-get_regression_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_seed) {
+get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_seed) {
   corpus <- readRDS(file.path(viewpoint_dir, "corpus.rds")) %>%
     as.list() %>%
     purrr::map2_dfr(seq_along(.), ., ~ tibble(seq_id = .x,
