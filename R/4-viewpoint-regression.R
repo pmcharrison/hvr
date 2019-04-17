@@ -52,7 +52,7 @@ get_regression_model_matrix <- function(corpus, model_matrix_dir, predictors) {
   dplyr::inner_join(raw,
                     dplyr::select(corpus, - .data$symbol),
                     by = id_vars) %>%
-    dplyr::select(c(id_vars, "observed", predictors$label))
+    dplyr::select(c(id_vars, "symbol", "observed", predictors$label))
 }
 
 
