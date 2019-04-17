@@ -150,7 +150,7 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir) {
       t(raw[models, event_id, ]) %>%
         tibble::as_tibble() %>%
         dplyr::mutate_all(~ dplyr::if_else(is.na(.), 1, .)) %>%
-        dplyr::mutate_all(~ - log2(.))
+        dplyr::mutate_all(~ log2(.))
     ) %>% tibble::as_tibble()
   })
 }
