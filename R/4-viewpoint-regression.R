@@ -21,13 +21,59 @@ viewpoint_regression <- function(
 }
 
 conduct_regression <- function(model_matrix, predictors) {
-  formula <- glue::glue("cbind(observed, event_id) ~ {paste(predictors$label, collapse = '+')}") %>%
-    as.formula()
+
+  observation_matrix <- model_matrix %>%
+    dplyr::filter(observed) %>%
+    dplyr::select(predictors$label) %>%
+    as.matrix()
+
+  continuation_matrices <- model_matrix %>%
+    dplyr::group_by(seq_event_id) %>%
+    dplyr::group_split() %>%
+    purrr::map(dplyr::select, predictors$label) %>%
+    purrr::map(as.matrix)
+
 
   message("Fitting conditional logit model...")
-  m <- mclogit::mclogit(formula, data = model_matrix,
-                        # start = 1,
-                        control = mclogit::mclogit.control(trace = TRUE))
+
+  browser()
+
+  m <- predictors$label %>%
+    # setdiff(., "ltm_pc_set") %>%
+    # setdiff(., "stm_bass_pc") %>%
+    # setdiff(., "ltm_bass_pc") %>%
+    # setdiff(., "stm_pc_set") %>%
+    # sprintf("scale(%s)", .) %>%
+    paste(collapse = " + ") %>%
+    sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
+    as.formula() %>%
+    mclogit::mclogit(data = model_matrix,
+                     start = c(1, 1),  #rep(1, times = nrow(predictors)),
+                     control = mclogit::mclogit.control(trace = TRUE))
+
+  m
+}
+
+conduct_regression_old <- function(model_matrix, predictors) {
+
+  message("Fitting conditional logit model...")
+
+  browser()
+
+  m <- predictors$label %>%
+    # setdiff(., "ltm_pc_set") %>%
+    # setdiff(., "stm_bass_pc") %>%
+    # setdiff(., "ltm_bass_pc") %>%
+    # setdiff(., "stm_pc_set") %>%
+    # sprintf("scale(%s)", .) %>%
+    paste(collapse = " + ") %>%
+    sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
+    as.formula() %>%
+    mclogit::mclogit(data = model_matrix,
+                     start = c(1, 1),  #rep(1, times = nrow(predictors)),
+                     control = mclogit::mclogit.control(trace = TRUE))
+
+  m
 }
 
 get_regression_predictors <- function(model_matrix_dir, viewpoints, poly_degree) {
@@ -48,11 +94,11 @@ get_regression_model_matrix <- function(corpus, model_matrix_dir, predictors) {
   message("Loading model matrix...")
   raw <- readRDS(file.path(model_matrix_dir, "model-matrix.rds"))
   message("  Done.")
-  id_vars <- c("seq_id", "event_id")
   dplyr::inner_join(raw,
                     dplyr::select(corpus, - .data$symbol),
-                    by = id_vars) %>%
-    dplyr::select(c(id_vars, "symbol", "observed", predictors$label))
+                    by = c("seq_id", "event_id")) %>%
+    dplyr::select(c("seq_event_id", "seq_id", "event_id", "symbol",
+                    "observed", predictors$label))
 }
 
 
@@ -69,5 +115,6 @@ get_regression_corpus <- function(model_matrix_dir, max_sample, sample_seed) {
 
   corpus %>%
     dplyr::filter(.data$selected) %>%
-    dplyr::select(- .data$selected)
+    dplyr::select(- .data$selected) %>%
+    tibble::add_column(., seq_event_id = seq_len(nrow(.)), .before = 1)
 }

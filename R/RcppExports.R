@@ -9,3 +9,11 @@ cosine_similarities <- function(vector, vectors) {
     .Call(`_hvr_cosine_similarities`, vector, vectors)
 }
 
+cost <- function(weights, observation_matrix, continuation_matrices) {
+    .Call(`_hvr_cost`, weights, observation_matrix, continuation_matrices)
+}
+
+gradient <- function(weights, observation_matrix, continuation_matrices) {
+    .Call(`_hvr_gradient`, weights, observation_matrix, continuation_matrices)
+}
+
