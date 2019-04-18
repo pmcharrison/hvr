@@ -3,6 +3,7 @@ compute_model_matrix <- function(
   max_sample = 1e4,
   sample_seed = 1,
   poly_degree = 3L,
+  na_val = 0,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
@@ -10,6 +11,7 @@ compute_model_matrix <- function(
   test_seq = list_test_seq(ppm_dir)
 ) {
   checkmate::qassert(max_sample, "X1[50,)")
+  checkmate::qassert(na_val, "N1(,)")
   max_sample <- as.integer(max_sample)
   checkmate::qassert(poly_degree, "X1[1,)")
   corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
@@ -19,17 +21,35 @@ compute_model_matrix <- function(
   write_model_matrix_yaml(max_sample, sample_seed, poly_degree, viewpoints,
                           output_dir)
 
-  c(continuous_model_matrix, poly_coefs) %<-%
-    get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree)
+  c(continuous_model_matrix, poly_coefs, moments) %<-%
+    get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree, na_val)
 
   model_matrix <- get_model_matrix(
     continuous_model_matrix,
-    get_discrete_model_matrix(corpus, predictors, ppm_dir)
+    get_discrete_model_matrix(corpus, predictors, ppm_dir, na_val),
+    predictors
   )
 
+  message("Saving outputs...")
+  saveRDS(moments, file.path(output_dir, "moments.rds"))
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(predictors, file.path(output_dir, "predictors.rds"))
   saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))
+  saveRDS(poly_coefs, file.path(output_dir, "poly-coefs.rds"))
+}
+
+get_moments <- function(model_matrix, predictors) {
+  message("Computing moments...")
+  obs <- model_matrix %>% dplyr::filter(observed)
+  viewpoints <- predictors %>%
+    dplyr::filter(!discrete) %>%
+    dplyr::pull(.data$viewpoint) %>%
+    unique() %>% sort()
+  purrr::map_dfr(viewpoints, function(v) {
+    tibble(viewpoint = v,
+           mean = mean(obs[[v]], na.rm = TRUE),
+           sd = sd(obs[[v]], na.rm = TRUE))
+  })
 }
 
 write_model_matrix_yaml <- function(max_sample, sample_seed, poly_degree, viewpoints,
@@ -50,7 +70,8 @@ list_test_seq <- function(ppm_dir) {
 }
 
 get_model_matrix <- function(continuous_model_matrix,
-                             discrete_model_matrix) {
+                             discrete_model_matrix,
+                             predictors) {
   id_vars <- c("seq_id", "event_id", "symbol")
   stopifnot(identical(
     as.data.frame(continuous_model_matrix[, id_vars]),
@@ -62,15 +83,22 @@ get_model_matrix <- function(continuous_model_matrix,
   )
 }
 
-get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_degree) {
+get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_degree, na_val) {
   message("Getting model matrix for continuous viewpoints...")
-  plyr::llply(sort(unique(corpus$seq_id)), function(i) {
+  raw <- plyr::llply(sort(unique(corpus$seq_id)), function(i) {
     corpus %>%
       dplyr::filter(.data$seq_id == i) %>%
       seq_continuous_model_matrix(predictors, viewpoint_dir)
   }, .progress = "text") %>%
-    dplyr::bind_rows() %>%
-    add_polynomials(predictors, poly_degree)
+    dplyr::bind_rows()
+
+  c(continuous_model_matrix, poly_coefs) %<-% add_polynomials(raw, predictors,
+                                                              poly_degree, na_val)
+  list(
+    continuous_model_matrix = continuous_model_matrix,
+    poly_coefs = poly_coefs,
+    moments = get_moments(raw, predictors)
+  )
 }
 
 seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir) {
@@ -93,20 +121,21 @@ seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir) {
         observed = symbol == !!symbol
       ),
       t(raw[viewpoints, event_id, ]) %>%
-        tibble::as_tibble() %>%
-        dplyr::mutate_all(~ dplyr::if_else(is.na(.), 0, .))
+        tibble::as_tibble()
     )
   })
 }
 
-add_polynomials <- function(continuous_model_matrix, predictors, poly_degree) {
+add_polynomials <- function(continuous_model_matrix, predictors, poly_degree, na_val) {
   viewpoints <- predictors %>%
     dplyr::filter(!.data$discrete) %>%
     dplyr::pull(.data$viewpoint) %>%
     unique() %>%
     magrittr::set_names(., .)
   res <- purrr::map(viewpoints, function(v) {
-    raw <- stats::poly(continuous_model_matrix[[v]], degree = poly_degree)
+    raw <- continuous_model_matrix[[v]] %>%
+      dplyr::if_else(is.na(.), na_val, .) %>%
+      stats::poly(degree = poly_degree)
     vals <- tibble::as_tibble(raw)
     names(vals) <- purrr::map_chr(seq_len(poly_degree), function(i) {
       predictors %>%
@@ -118,22 +147,26 @@ add_polynomials <- function(continuous_model_matrix, predictors, poly_degree) {
   })
   vals <- purrr::map(res, "vals")
   list(
-    continuous_model_matrix = dplyr::bind_cols(continuous_model_matrix, vals),
+    continuous_model_matrix = dplyr::bind_cols(
+      continuous_model_matrix %>%
+        dplyr::select(c("seq_id", "event_id", "symbol", "observed")),
+      vals
+    ),
     coefs = purrr::map(res, "coefs")
   )
 }
 
-get_discrete_model_matrix <- function(corpus, predictors, ppm_dir) {
+get_discrete_model_matrix <- function(corpus, predictors, ppm_dir, na_val) {
   message("Getting model matrix for discrete viewpoints...")
   plyr::llply(sort(unique(corpus$seq_id)), function(i) {
     corpus %>%
       dplyr::filter(.data$seq_id == i) %>%
-      seq_discrete_model_matrix(predictors, ppm_dir)
+      seq_discrete_model_matrix(predictors, ppm_dir, na_val)
   }, .progress = "text") %>%
     dplyr::bind_rows()
 }
 
-seq_discrete_model_matrix <- function(events, predictors, ppm_dir) {
+seq_discrete_model_matrix <- function(events, predictors, ppm_dir, na_val) {
   models <- predictors %>%
     dplyr::filter(.data$discrete) %>%
     dplyr::pull(.data$label) %>%
@@ -149,8 +182,8 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir) {
       symbol = seq_len(hrep::alphabet_size("pc_chord")),
       t(raw[models, event_id, ]) %>%
         tibble::as_tibble() %>%
-        dplyr::mutate_all(~ dplyr::if_else(is.na(.), 1, .)) %>%
-        dplyr::mutate_all(~ log2(.))
+        dplyr::mutate_all(~ log2(.)) %>%
+        dplyr::mutate_all(~ dplyr::if_else(is.na(.), na_val, .))
     ) %>% tibble::as_tibble()
   })
 }
