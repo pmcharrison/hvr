@@ -15,8 +15,8 @@ new_spec_dist_viewpoint <- function(half_life) {
       res <- rep(as.numeric(NA), length = length(chord_ids))
       if (length(chord_ids) > 1L) {
         for (i in seq(from = 2L, to = length(chord_ids))) {
-          res[i] <- hrep::cosine_similarity(decay_spectra[[i - 1L]],
-                                            spectra[[i]])
+          res[i] <- 1 - hrep::cosine_similarity(decay_spectra[[i - 1L]],
+                                                spectra[[i]])
         }
       }
       res
@@ -36,8 +36,8 @@ new_spec_dist_viewpoint <- function(half_life) {
             min = 1, max = length(chord_ids), style = 3)
         }
         for (i in seq(from = 2, to = length(chord_ids))) {
-          res[i, ] <- cosine_similarities(decay_spectra[[i - 1L]],
-                                          hvrmap::map_pc_chord$milne_pc_spectrum)
+          res[i, ] <- 1 - cosine_similarities(decay_spectra[[i - 1L]],
+                                              hvrmap::map_pc_chord$milne_pc_spectrum)
           if (verbose) utils::setTxtProgressBar(pb, i)
         }
         if (verbose) close(pb)
