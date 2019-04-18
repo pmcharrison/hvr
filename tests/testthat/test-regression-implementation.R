@@ -22,12 +22,13 @@ test_that("misc", {
     }) %>% as.matrix()
 
   cost_r <- function(weights, observation_matrix, continuation_matrices) {
+    browser()
     weights <- matrix(weights, ncol = 1)
     energies <- observation_matrix %*% weights
     partitions <- purrr::map_dbl(continuation_matrices,
                                  ~ sum(exp(. %*% weights)))
     probabilities <- exp(energies) / partitions
-    - sum(log(probabilities))
+    - log2(exp(1)) * sum(log(probabilities)) / nrow(observation_matrix)
   }
 
   expect_equal(
@@ -38,7 +39,8 @@ test_that("misc", {
   expect_equal(
     numDeriv::jacobian(cost, weights,
                        observation_matrix = observation_matrix,
-                       continuation_matrices = continuation_matrices),
+                       continuation_matrices = continuation_matrices) %>%
+      as.numeric(),
     gradient(weights, observation_matrix, continuation_matrices)
   )
 })

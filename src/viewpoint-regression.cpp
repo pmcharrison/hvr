@@ -9,8 +9,9 @@ double cost (const NumericVector &weights,
              const List &continuation_matrices) {
   int num_weights = weights.size();
   int num_seq = continuation_matrices.size();
+  int num_obs = observation_matrix.nrow();
 
-  double cost = 0.0;
+  double corpus_cost = 0.0;
 
   for (int i = 0; i < num_seq; i ++) { // over events
     const NumericMatrix &continuation_matrix = continuation_matrices[i];
@@ -38,9 +39,11 @@ double cost (const NumericVector &weights,
     // Rcout << "observation_energy = " << observation_energy << "\n";
     double observation_probability = exp(observation_energy) / z;
     // Rcout << "observation_probability = " << observation_probability << "\n";
-    cost -= log(observation_probability);
+    corpus_cost -= log(observation_probability);
   }
-  return cost;
+  double event_cost_nats = corpus_cost / num_obs;
+  double event_cost_bits = event_cost_nats * log2(exp(1.0));
+  return event_cost_bits;
 }
 
 // [[Rcpp::export]]
@@ -49,8 +52,9 @@ NumericVector gradient (const NumericVector &weights,
                         const List &continuation_matrices) {
   int num_weights = weights.size();
   int num_seq = continuation_matrices.size();
+  int num_obs = observation_matrix.nrow();
 
-  NumericVector grad(num_weights, 0.0);
+  NumericVector corpus_grad(num_weights, 0.0);
 
   for (int i = 0; i < num_seq; i ++) { // over events
     const NumericMatrix &continuation_matrix = continuation_matrices[i];
@@ -69,8 +73,9 @@ NumericVector gradient (const NumericVector &weights,
       }
     }
     for (int k = 0; k < num_weights; k ++) { // one more time over features
-      grad[k] += z_prime[k] / z - observation_matrix(i, k);
+      corpus_grad[k] += z_prime[k] / z - observation_matrix(i, k);
     }
   }
-  return grad;
+  NumericVector event_grad_bits = corpus_grad * (log2(exp(1.0)) / num_obs);
+  return event_grad_bits;
 }
