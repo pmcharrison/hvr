@@ -8,13 +8,13 @@ compute_ppm_analyses <- function(
   output_dir = file.path(parent_dir, "1-ppm"),
   stm_opt = stm_options(),
   ltm_opt = ltm_options(),
-  seq_test_folds = list(yaml::read_yaml(file.path(viewpoint_dir, "about.yaml"))$seq_test),
-  seq_pretrain = yaml::read_yaml(file.path(viewpoint_dir, "about.yaml"))$seq_pretrain,
-  viewpoints = yaml::read_yaml(file.path(viewpoint_dir, "about.yaml"))$discrete_viewpoints
+  seq_test_folds = list(readRDS(file.path(viewpoint_dir, "about.rds"))$seq_test),
+  seq_pretrain = readRDS(file.path(viewpoint_dir, "about.rds"))$seq_pretrain,
+  viewpoints = readRDS(file.path(viewpoint_dir, "about.rds"))$discrete_viewpoints
 ) {
   ppm_check_input(viewpoint_dir, output_dir, stm_opt, ltm_opt,
                   seq_test_folds, seq_pretrain, viewpoints)
-  ppm_write_yaml(output_dir, stm_opt, ltm_opt, seq_test_folds, seq_pretrain, viewpoints)
+  ppm_write_about(output_dir, stm_opt, ltm_opt, seq_test_folds, seq_pretrain, viewpoints)
   model_spec <- ppm_identify_models(stm_opt, ltm_opt, viewpoints, output_dir)
   viewpoints_observed <- readRDS(file.path(viewpoint_dir, "viewpoints-training.rds")) %>%
     purrr::map("discrete")
@@ -188,7 +188,7 @@ ppm_check_input <- function(viewpoint_dir, output_dir, stm_opt, ltm_opt,
   checkmate::qassert(seq_pretrain, "X")
 }
 
-ppm_write_yaml <- function(output_dir, stm_opt, ltm_opt,
+ppm_write_about <- function(output_dir, stm_opt, ltm_opt,
                            seq_test_folds, seq_pretrain,
                            viewpoints) {
   R.utils::mkdirs(output_dir)
@@ -197,7 +197,7 @@ ppm_write_yaml <- function(output_dir, stm_opt, ltm_opt,
        seq_test_folds = seq_test_folds,
        seq_pretrain = seq_pretrain,
        viewpoints = viewpoints) %>%
-    yaml::write_yaml(file.path(output_dir, "about.yaml"))
+    writeRDS(file.path(output_dir, "about.rds"))
 }
 
 ppm_identify_models <- function(stm_opt, ltm_opt, viewpoints, output_dir) {

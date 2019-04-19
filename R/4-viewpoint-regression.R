@@ -9,7 +9,7 @@ viewpoint_regression <- function(
   perm_int_reps = 25,
   model_matrix_dir = file.path(parent_dir, "2-model-matrix"),
   output_dir = file.path(parent_dir, "3-viewpoint-regression"),
-  viewpoints = yaml::read_yaml(file.path(model_matrix_dir, "about.yaml"))$viewpoints
+  viewpoints = readRDS(file.path(model_matrix_dir, "about.rds"))$viewpoints
 ) {
   checkmate::qassert(poly_degree, "X1[1,)")
   poly_degree <- as.integer(poly_degree)
@@ -29,17 +29,17 @@ viewpoint_regression <- function(
                             max_iter, perm_int, perm_int_seed, perm_int_reps)
 
   R.utils::mkdirs(output_dir)
-  write_regression_yaml(output_dir, max_sample, sample_seed, poly_degree,
-                        perm_int, perm_int_seed, perm_int_reps, viewpoints)
+  write_regression_about(output_dir, max_sample, sample_seed, poly_degree,
+                         perm_int, perm_int_seed, perm_int_reps, viewpoints)
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(res, file.path(output_dir, "results.rds"))
 
   invisible(res)
 }
 
-write_regression_yaml <- function(output_dir, max_sample, sample_seed, poly_degree,
-                                  perm_int, perm_int_seed, perm_int_reps,
-                                  viewpoints) {
+write_regression_about <- function(output_dir, max_sample, sample_seed, poly_degree,
+                                   perm_int, perm_int_seed, perm_int_reps,
+                                   viewpoints) {
   list(
     max_sample = max_sample,
     sample_seed = sample_seed,
@@ -49,7 +49,7 @@ write_regression_yaml <- function(output_dir, max_sample, sample_seed, poly_degr
     perm_int_reps = perm_int_reps,
     viewpoints = viewpoints
   ) %>%
-    yaml::write_yaml(file.path(output_dir, "about.yaml"))
+    writeRDS(file.path(output_dir, "about.rds"))
 }
 
 plot_marginal <- function(x, viewpoint) {
@@ -179,7 +179,7 @@ permute_matrices <- function(observation_matrix,
   new_observation_matrix <-
     purrr::pmap(corpus, function(seq_event_id, seq_id, event_id, symbol, ...) {
       new_continuation_matrices[[seq_event_id]][symbol, ]
-  }) %>% do.call(rbind, .)
+    }) %>% do.call(rbind, .)
 
   list(new_observation_matrix,
        new_continuation_matrices)

@@ -17,7 +17,7 @@ compute_viewpoints <- function(corpus,
   R.utils::mkdirs(dir)
   saveRDS(corpus, file.path(dir, "corpus.rds"))
 
-  yaml::write_yaml(
+  writeRDS(
     list(
       corpus_size = length(corpus),
       seq_test = seq_test,
@@ -26,7 +26,7 @@ compute_viewpoints <- function(corpus,
         purrr::map(~ .[c("name", "alphabet_size")]),
       continuous_viewpoints = Filter(Negate(is_discrete), viewpoints) %>% purrr::map(name)
     ),
-    file.path(dir, "about.yaml")
+    file.path(dir, "about.rds")
   )
 
   compute_training_viewpoints(viewpoints,

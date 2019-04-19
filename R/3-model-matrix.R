@@ -20,11 +20,11 @@ compute_model_matrix <- function(
   predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
 
   R.utils::mkdirs(output_dir)
-  write_model_matrix_yaml(max_sample, sample_seed, poly_degree, viewpoints,
-                          output_dir)
+  write_model_matrix_about(max_sample, sample_seed, poly_degree, viewpoints,
+                           output_dir)
 
   tmp <- get_continuous_model_matrix(corpus, predictors, viewpoint_dir,
-                                poly_degree, na_val, allow_repeats)
+                                     poly_degree, na_val, allow_repeats)
 
   model_matrix <- get_model_matrix(
     tmp$continuous_model_matrix,
@@ -63,20 +63,20 @@ get_moments <- function(model_matrix, predictors) {
   })
 }
 
-write_model_matrix_yaml <- function(max_sample, sample_seed, poly_degree, viewpoints,
-                                    output_dir) {
+write_model_matrix_about <- function(max_sample, sample_seed, poly_degree, viewpoints,
+                                     output_dir) {
   list(
     max_sample = max_sample,
     sample_seed = sample_seed,
     poly_degree = poly_degree,
     viewpoints = viewpoints
   ) %>%
-    yaml::write_yaml(file.path(output_dir, "about.yaml"))
+    writeRDS(file.path(output_dir, "about.rds"))
 }
 
 
 list_test_seq <- function(ppm_dir) {
-  yaml::read_yaml(file.path(ppm_dir, "about.yaml"))$seq_test_folds %>%
+  readRDS(file.path(ppm_dir, "about.rds"))$seq_test_folds %>%
     unlist() %>% sort()
 }
 
@@ -207,7 +207,7 @@ get_model_matrix_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly
     tibble::add_column(discrete = TRUE, .before = 1L) %>%
     dplyr::select(- .data$id)
 
-  continuous <- yaml::read_yaml(file.path(viewpoint_dir, "about.yaml"))$continuous_viewpoints %>%
+  continuous <- readRDS(file.path(viewpoint_dir, "about.rds"))$continuous_viewpoints %>%
     purrr::map_dfr(~ tibble(discrete = FALSE,
                             class = as.character(NA),
                             viewpoint = .,
@@ -220,9 +220,9 @@ get_model_matrix_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly
 }
 
 list_viewpoints <- function(viewpoint_dir) {
-  yaml <- yaml::read_yaml(file.path(viewpoint_dir, "about.yaml"))
-  c(yaml$discrete %>% purrr::map_chr("name"),
-    yaml$continuous) %>% sort()
+  about <- readRDS(file.path(viewpoint_dir, "about.rds"))
+  c(about$discrete %>% purrr::map_chr("name"),
+    about$continuous) %>% sort()
 }
 
 get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_seed) {
