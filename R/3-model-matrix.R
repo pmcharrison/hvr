@@ -8,12 +8,14 @@ compute_model_matrix <- function(
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
   viewpoints = list_viewpoints(viewpoint_dir),
-  test_seq = list_test_seq(ppm_dir)
+  test_seq = list_test_seq(ppm_dir),
+  allow_repeats = FALSE
 ) {
   checkmate::qassert(max_sample, "X1[50,)")
   checkmate::qassert(na_val, "N1(,)")
   max_sample <- as.integer(max_sample)
   checkmate::qassert(poly_degree, "X1[1,)")
+  checkmate::qassert(allow_repeats, "B1")
   corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
   predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
 
@@ -22,7 +24,7 @@ compute_model_matrix <- function(
                           output_dir)
 
   c(continuous_model_matrix, poly_coefs, moments) %<-%
-    get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree, na_val)
+    get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree, na_val, allow_repeats)
 
   model_matrix <- get_model_matrix(
     continuous_model_matrix,
@@ -30,12 +32,21 @@ compute_model_matrix <- function(
     predictors
   )
 
+  check_model_matrix(model_matrix)
+
   message("Saving outputs...")
   saveRDS(moments, file.path(output_dir, "moments.rds"))
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(predictors, file.path(output_dir, "predictors.rds"))
   saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))
   saveRDS(poly_coefs, file.path(output_dir, "poly-coefs.rds"))
+}
+
+check_model_matrix <- function(model_matrix) {
+  if (any(model_matrix$observed & !model_matrix$legal)) {
+    stop("Observed illegal events. Did you forget to ",
+         "set 'allow_repeats' to TRUE?")
+  }
 }
 
 get_moments <- function(model_matrix, predictors) {
@@ -83,12 +94,12 @@ get_model_matrix <- function(continuous_model_matrix,
   )
 }
 
-get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_degree, na_val) {
+get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_degree, na_val, allow_repeats) {
   message("Getting model matrix for continuous viewpoints...")
   raw <- plyr::llply(sort(unique(corpus$seq_id)), function(i) {
     corpus %>%
       dplyr::filter(.data$seq_id == i) %>%
-      seq_continuous_model_matrix(predictors, viewpoint_dir)
+      seq_continuous_model_matrix(predictors, viewpoint_dir, allow_repeats)
   }, .progress = "text") %>%
     dplyr::bind_rows()
 
@@ -101,7 +112,7 @@ get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_
   )
 }
 
-seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir) {
+seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir, allow_repeats) {
   viewpoints <- predictors %>%
     dplyr::filter(!.data$discrete) %>%
     dplyr::pull(.data$viewpoint) %>%
@@ -112,15 +123,18 @@ seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir) {
   raw <- readRDS(file.path(viewpoint_dir,
                            "viewpoints-test",
                            paste0(seq_id, ".rds")))$continuous
-  purrr::pmap_dfr(events, function(seq_id, event_id, symbol) {
+  purrr::map_dfr(seq_len(nrow(events)), function(i) {
     dplyr::bind_cols(
       tibble(
-        seq_id,
-        event_id,
+        seq_id = events$seq_id[i],
+        event_id = events$event_id[i],
         symbol = seq_len(hrep::alphabet_size("pc_chord")),
-        observed = symbol == !!symbol
+        observed = .data$symbol == events$symbol[i],
+        legal = allow_repeats |
+          events$event_id[i] == 1L |
+          .data$symbol != events$prev_symbol[i]
       ),
-      t(raw[viewpoints, event_id, ]) %>%
+      t(raw[viewpoints, events$event_id[i], ]) %>%
         tibble::as_tibble()
     )
   })
@@ -149,7 +163,7 @@ add_polynomials <- function(continuous_model_matrix, predictors, poly_degree, na
   list(
     continuous_model_matrix = dplyr::bind_cols(
       continuous_model_matrix %>%
-        dplyr::select(c("seq_id", "event_id", "symbol", "observed")),
+        dplyr::select(c("seq_id", "event_id", "symbol", "observed", "legal")),
       vals
     ),
     coefs = purrr::map(res, "coefs")
@@ -176,7 +190,7 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir, na_val) {
             length(seq_id) == 1)
   raw <- readRDS(file.path(ppm_dir, "output", paste0(seq_id, ".rds")))
 
-  purrr::pmap_dfr(events, function(seq_id, event_id, symbol) {
+  purrr::pmap_dfr(events, function(seq_id, event_id, symbol, prev_symbol) {
     cbind(
       seq_id, event_id,
       symbol = seq_len(hrep::alphabet_size("pc_chord")),
@@ -218,6 +232,8 @@ get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_
     purrr::map2_dfr(seq_along(.), ., ~ tibble(seq_id = .x,
                                               event_id = seq_along(.y),
                                               symbol = as.integer(.y),
+                                              prev_symbol = c(as.integer(NA),
+                                                              .data$symbol[- length(.data$symbol)]),
                                               selected = FALSE)) %>%
     dplyr::filter(.data$seq_id %in% test_seq)
 

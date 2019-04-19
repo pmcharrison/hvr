@@ -25,7 +25,7 @@ viewpoint_regression <- function(
   moments <- readRDS(file.path(model_matrix_dir, "moments.rds"))
   message("  done.")
 
-  res <- conduct_regression(model_matrix, corpus, predictors, poly_coefs, moments,
+  res <- conduct_regression(model_matrix, corpus, predictors, poly_degree, poly_coefs, moments,
                             max_iter, perm_int, perm_int_seed, perm_int_reps)
 
   R.utils::mkdirs(output_dir)
@@ -52,8 +52,40 @@ write_regression_yaml <- function(output_dir, max_sample, sample_seed, poly_degr
     yaml::write_yaml(file.path(output_dir, "about.yaml"))
 }
 
+plot_marginal <- function(x, viewpoint) {
+  UseMethod("plot_marginal")
+}
+
+plot_marginal.viewpoint_regression <- function(x, viewpoint) {
+  checkmate::qassert(viewpoint, "S1")
+  continuous_viewpoints <- x$predictors %>%
+    dplyr::filter(!.data$discrete) %>%
+    dplyr::pull(.data$viewpoint) %>%
+    unique()
+  if (!viewpoint %in% continuous_viewpoints)
+    stop("can only plot marginals for continuous viewpoints")
+
+  moments <- x$moments %>% dplyr::filter(.data$viewpoint == !!viewpoint)
+  z_seq <- seq(from = -4, to = 4, length.out = 1000)
+  x_seq <- seq(from = moments$mean - 4 * moments$sd,
+               to = moments$mean + 4 * moments$sd,
+               length.out = 1000)
+  poly_coef <- x$poly_coefs[[viewpoint]]
+  degree <- poly_coef$alpha %>% length()
+  poly_x <- poly(x_seq, degree = degree, coefs = poly_coef)[, seq_len(x$poly_degree)]
+  par <- x$predictors %>%
+    dplyr::filter(.data$viewpoint == !!viewpoint) %>%
+    dplyr::arrange(.data$poly_degree) %>%
+    dplyr::pull(.data$label) %>%
+    {x$par[.]}
+
+  y <- poly_x %*% matrix(par, ncol = 1)
+  plot(z_seq, y, type = "l", xlab = "Feature value (z-score)", ylab = "Effect",
+       main = viewpoint)
+}
+
 conduct_regression <- function(model_matrix, corpus,
-                               predictors, poly_coefs, moments,
+                               predictors, poly_degree, poly_coefs, moments,
                                max_iter, perm_int, perm_int_seed, perm_int_reps) {
   message("Reshaping data...")
 
@@ -62,11 +94,17 @@ conduct_regression <- function(model_matrix, corpus,
     dplyr::select(predictors$label) %>%
     as.matrix()
 
-  continuation_matrices <- model_matrix %>%
+  tmp <- continuation_matrices <- model_matrix %>%
     dplyr::group_by(seq_event_id) %>%
     dplyr::group_split() %>%
+    purrr::map(~ dplyr::arrange(., .data$symbol))
+
+  continuation_matrices <- tmp %>%
     purrr::map(dplyr::select, predictors$label) %>%
     purrr::map(as.matrix)
+
+  legal <- tmp %>%
+    purrr::map("legal")
 
   message("Fitting conditional logit model...")
 
@@ -76,6 +114,7 @@ conduct_regression <- function(model_matrix, corpus,
              method = "BFGS",
              observation_matrix = observation_matrix,
              continuation_matrices = continuation_matrices,
+             legal = legal,
              control = list(trace = 6,
                             maxit = max_iter))
 
@@ -85,11 +124,14 @@ conduct_regression <- function(model_matrix, corpus,
                  corpus = corpus,
                  observation_matrix = observation_matrix,
                  continuation_matrices = continuation_matrices,
+                 legal = legal,
                  predictors = predictors,
                  seed = perm_int_seed,
                  reps = perm_int_reps)
 
-  res <- list(par = x$par %>% magrittr::set_names(predictors$label),
+  res <- list(predictors = predictors,
+              par = x$par %>% magrittr::set_names(predictors$label),
+              poly_degree = poly_degree,
               poly_coefs = poly_coefs,
               moments = moments,
               cost = x$value,
@@ -104,6 +146,7 @@ get_perm_int <- function(weights,
                          corpus,
                          observation_matrix,
                          continuation_matrices,
+                         legal,
                          predictors,
                          seed,
                          reps) {
@@ -119,7 +162,7 @@ get_perm_int <- function(weights,
                                                   predictors,
                                                   v)
 
-        cost(weights, new_obs_matrix, new_con_matrices) - benchmark_cost
+        cost(weights, new_obs_matrix, new_con_matrices, legal) - benchmark_cost
       })
     }) %>% mean()
   }, .progress = "text") %>%
@@ -136,7 +179,7 @@ permute_matrices <- function(observation_matrix,
   new_continuation_matrices <- purrr::map(continuation_matrices, permute_cols, cols)
 
   new_observation_matrix <-
-    purrr::pmap(corpus, function(seq_event_id, seq_id, event_id, symbol) {
+    purrr::pmap(corpus, function(seq_event_id, seq_id, event_id, symbol, ...) {
       new_continuation_matrices[[seq_event_id]][symbol, ]
   }) %>% do.call(rbind, .)
 
@@ -156,14 +199,7 @@ conduct_regression_old <- function(model_matrix, predictors) {
 
   message("Fitting conditional logit model...")
 
-  browser()
-
   m <- predictors$label %>%
-    # setdiff(., "ltm_pc_set") %>%
-    # setdiff(., "stm_bass_pc") %>%
-    # setdiff(., "ltm_bass_pc") %>%
-    # setdiff(., "stm_pc_set") %>%
-    # sprintf("scale(%s)", .) %>%
     paste(collapse = " + ") %>%
     sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
     as.formula() %>%
@@ -194,7 +230,7 @@ get_regression_model_matrix <- function(corpus, model_matrix_dir, predictors) {
                     dplyr::select(corpus, - .data$symbol),
                     by = c("seq_id", "event_id")) %>%
     dplyr::select(c("seq_event_id", "seq_id", "event_id", "symbol",
-                    "observed", predictors$label))
+                    "observed", "legal", predictors$label))
 }
 
 

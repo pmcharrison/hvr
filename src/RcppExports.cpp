@@ -30,28 +30,30 @@ BEGIN_RCPP
 END_RCPP
 }
 // cost
-double cost(const NumericVector& weights, const NumericMatrix& observation_matrix, const List& continuation_matrices);
-RcppExport SEXP _hvr_cost(SEXP weightsSEXP, SEXP observation_matrixSEXP, SEXP continuation_matricesSEXP) {
+double cost(const NumericVector& weights, const NumericMatrix& observation_matrix, const List& continuation_matrices, const List& legal);
+RcppExport SEXP _hvr_cost(SEXP weightsSEXP, SEXP observation_matrixSEXP, SEXP continuation_matricesSEXP, SEXP legalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type weights(weightsSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type observation_matrix(observation_matrixSEXP);
     Rcpp::traits::input_parameter< const List& >::type continuation_matrices(continuation_matricesSEXP);
-    rcpp_result_gen = Rcpp::wrap(cost(weights, observation_matrix, continuation_matrices));
+    Rcpp::traits::input_parameter< const List& >::type legal(legalSEXP);
+    rcpp_result_gen = Rcpp::wrap(cost(weights, observation_matrix, continuation_matrices, legal));
     return rcpp_result_gen;
 END_RCPP
 }
 // gradient
-NumericVector gradient(const NumericVector& weights, const NumericMatrix& observation_matrix, const List& continuation_matrices);
-RcppExport SEXP _hvr_gradient(SEXP weightsSEXP, SEXP observation_matrixSEXP, SEXP continuation_matricesSEXP) {
+NumericVector gradient(const NumericVector& weights, const NumericMatrix& observation_matrix, const List& continuation_matrices, const List& legal);
+RcppExport SEXP _hvr_gradient(SEXP weightsSEXP, SEXP observation_matrixSEXP, SEXP continuation_matricesSEXP, SEXP legalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericVector& >::type weights(weightsSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type observation_matrix(observation_matrixSEXP);
     Rcpp::traits::input_parameter< const List& >::type continuation_matrices(continuation_matricesSEXP);
-    rcpp_result_gen = Rcpp::wrap(gradient(weights, observation_matrix, continuation_matrices));
+    Rcpp::traits::input_parameter< const List& >::type legal(legalSEXP);
+    rcpp_result_gen = Rcpp::wrap(gradient(weights, observation_matrix, continuation_matrices, legal));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -59,8 +61,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_hvr_cosine_similarity", (DL_FUNC) &_hvr_cosine_similarity, 2},
     {"_hvr_cosine_similarities", (DL_FUNC) &_hvr_cosine_similarities, 2},
-    {"_hvr_cost", (DL_FUNC) &_hvr_cost, 3},
-    {"_hvr_gradient", (DL_FUNC) &_hvr_gradient, 3},
+    {"_hvr_cost", (DL_FUNC) &_hvr_cost, 4},
+    {"_hvr_gradient", (DL_FUNC) &_hvr_gradient, 4},
     {NULL, NULL, 0}
 };
 
