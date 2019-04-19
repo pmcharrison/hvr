@@ -197,7 +197,7 @@ ppm_write_about <- function(output_dir, stm_opt, ltm_opt,
        seq_test_folds = seq_test_folds,
        seq_pretrain = seq_pretrain,
        viewpoints = viewpoints) %>%
-    writeRDS(file.path(output_dir, "about.rds"))
+    saveRDS(file.path(output_dir, "about.rds"))
 }
 
 ppm_identify_models <- function(stm_opt, ltm_opt, viewpoints, output_dir) {

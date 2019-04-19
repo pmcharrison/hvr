@@ -71,7 +71,7 @@ write_model_matrix_about <- function(max_sample, sample_seed, poly_degree, viewp
     poly_degree = poly_degree,
     viewpoints = viewpoints
   ) %>%
-    writeRDS(file.path(output_dir, "about.rds"))
+    saveRDS(file.path(output_dir, "about.rds"))
 }
 
 

@@ -17,7 +17,7 @@ compute_viewpoints <- function(corpus,
   R.utils::mkdirs(dir)
   saveRDS(corpus, file.path(dir, "corpus.rds"))
 
-  writeRDS(
+  saveRDS(
     list(
       corpus_size = length(corpus),
       seq_test = seq_test,

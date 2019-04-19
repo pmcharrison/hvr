@@ -49,7 +49,7 @@ write_regression_about <- function(output_dir, max_sample, sample_seed, poly_deg
     perm_int_reps = perm_int_reps,
     viewpoints = viewpoints
   ) %>%
-    writeRDS(file.path(output_dir, "about.rds"))
+    saveRDS(file.path(output_dir, "about.rds"))
 }
 
 plot_marginal <- function(x, viewpoint) {
