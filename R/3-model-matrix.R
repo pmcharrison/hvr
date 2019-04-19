@@ -23,11 +23,11 @@ compute_model_matrix <- function(
   write_model_matrix_yaml(max_sample, sample_seed, poly_degree, viewpoints,
                           output_dir)
 
-  c(continuous_model_matrix, poly_coefs, moments) %<-%
-    get_continuous_model_matrix(corpus, predictors, viewpoint_dir, poly_degree, na_val, allow_repeats)
+  tmp <- get_continuous_model_matrix(corpus, predictors, viewpoint_dir,
+                                poly_degree, na_val, allow_repeats)
 
   model_matrix <- get_model_matrix(
-    continuous_model_matrix,
+    tmp$continuous_model_matrix,
     get_discrete_model_matrix(corpus, predictors, ppm_dir, na_val),
     predictors
   )
@@ -35,11 +35,11 @@ compute_model_matrix <- function(
   check_model_matrix(model_matrix)
 
   message("Saving outputs...")
-  saveRDS(moments, file.path(output_dir, "moments.rds"))
+  saveRDS(tmp$moments, file.path(output_dir, "moments.rds"))
+  saveRDS(tmp$poly_coefs, file.path(output_dir, "poly-coefs.rds"))
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(predictors, file.path(output_dir, "predictors.rds"))
   saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))
-  saveRDS(poly_coefs, file.path(output_dir, "poly-coefs.rds"))
 }
 
 check_model_matrix <- function(model_matrix) {
@@ -51,9 +51,9 @@ check_model_matrix <- function(model_matrix) {
 
 get_moments <- function(model_matrix, predictors) {
   message("Computing moments...")
-  obs <- model_matrix %>% dplyr::filter(observed)
+  obs <- model_matrix %>% dplyr::filter(.data$observed)
   viewpoints <- predictors %>%
-    dplyr::filter(!discrete) %>%
+    dplyr::filter(!.data$discrete) %>%
     dplyr::pull(.data$viewpoint) %>%
     unique() %>% sort()
   purrr::map_dfr(viewpoints, function(v) {
@@ -103,11 +103,10 @@ get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_
   }, .progress = "text") %>%
     dplyr::bind_rows()
 
-  c(continuous_model_matrix, poly_coefs) %<-% add_polynomials(raw, predictors,
-                                                              poly_degree, na_val)
+  tmp <- add_polynomials(raw, predictors, poly_degree, na_val)
   list(
-    continuous_model_matrix = continuous_model_matrix,
-    poly_coefs = poly_coefs,
+    continuous_model_matrix = tmp$continuous_model_matrix,
+    poly_coefs = tmp$poly_coefs,
     moments = get_moments(raw, predictors)
   )
 }

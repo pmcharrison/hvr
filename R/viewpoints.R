@@ -58,7 +58,7 @@ register_viewpoint <- function(x) {
   checkmate::qassert(x$name, "S1")
   if (x$name %in% names(hvr_viewpoints))
     stop("viewpoint ", x$name, " already exists")
-  hvr_viewpoints[[length(hvr_viewpoints) + 1L]] <<- x
+  hvr_viewpoints[[x$name]] <<- x
   hvr_viewpoints <<- hvr_viewpoints[order(purrr::map_chr(hvr_viewpoints, name))]
   x
 }

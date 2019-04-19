@@ -90,12 +90,12 @@ conduct_regression <- function(model_matrix, corpus,
   message("Reshaping data...")
 
   observation_matrix <- model_matrix %>%
-    dplyr::filter(observed) %>%
+    dplyr::filter(.data$observed) %>%
     dplyr::select(predictors$label) %>%
     as.matrix()
 
   tmp <- continuation_matrices <- model_matrix %>%
-    dplyr::group_by(seq_event_id) %>%
+    dplyr::group_by(.data$seq_event_id) %>%
     dplyr::group_split() %>%
     purrr::map(~ dplyr::arrange(., .data$symbol))
 
@@ -155,14 +155,12 @@ get_perm_int <- function(weights,
   plyr::laply(viewpoints, function(v) {
     withr::with_seed(seed, {
       plyr::laply(seq_len(reps), function(...) {
-        c(new_obs_matrix,
-          new_con_matrices) %<-% permute_matrices(observation_matrix,
-                                                  continuation_matrices,
-                                                  corpus,
-                                                  predictors,
-                                                  v)
-
-        cost(weights, new_obs_matrix, new_con_matrices, legal) - benchmark_cost
+        tmp <-  permute_matrices(observation_matrix,
+                                 continuation_matrices,
+                                 corpus,
+                                 predictors,
+                                 v)
+        cost(weights, tmp$new_obs_matrix, tmp$new_con_matrices, legal) - benchmark_cost
       })
     }) %>% mean()
   }, .progress = "text") %>%
@@ -174,7 +172,7 @@ permute_matrices <- function(observation_matrix,
                              corpus,
                              predictors,
                              v) {
-  cols <- predictors %>% dplyr::filter(.data$viewpoint == v) %>% `$`(label)
+  cols <- predictors %>% dplyr::filter(.data$viewpoint == v) %>% `$`("label")
 
   new_continuation_matrices <- purrr::map(continuation_matrices, permute_cols, cols)
 
@@ -195,20 +193,20 @@ permute_cols <- function(df, cols) {
   df
 }
 
-conduct_regression_old <- function(model_matrix, predictors) {
-
-  message("Fitting conditional logit model...")
-
-  m <- predictors$label %>%
-    paste(collapse = " + ") %>%
-    sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
-    as.formula() %>%
-    mclogit::mclogit(data = model_matrix,
-                     start = c(1, 1),  #rep(1, times = nrow(predictors)),
-                     control = mclogit::mclogit.control(trace = TRUE))
-
-  m
-}
+# conduct_regression_old <- function(model_matrix, predictors) {
+#
+#   message("Fitting conditional logit model...")
+#
+#   m <- predictors$label %>%
+#     paste(collapse = " + ") %>%
+#     sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
+#     as.formula() %>%
+#     mclogit::mclogit(data = model_matrix,
+#                      start = c(1, 1),  #rep(1, times = nrow(predictors)),
+#                      control = mclogit::mclogit.control(trace = TRUE))
+#
+#   m
+# }
 
 get_regression_predictors <- function(model_matrix_dir, viewpoints, poly_degree) {
   available <- readRDS(file.path(model_matrix_dir, "predictors.rds"))
@@ -221,7 +219,7 @@ get_regression_predictors <- function(model_matrix_dir, viewpoints, poly_degree)
                         paste(unique(available$viewpoint), collapse = ", "))
   available %>%
     dplyr::filter(.data$discrete | .data$poly_degree <= !!poly_degree) %>%
-    dplyr::filter(viewpoint %in% viewpoints)
+    dplyr::filter(.data$viewpoint %in% viewpoints)
 }
 
 get_regression_model_matrix <- function(corpus, model_matrix_dir, predictors) {

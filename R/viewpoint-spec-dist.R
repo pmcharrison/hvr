@@ -1,6 +1,7 @@
 #' @include viewpoints.R
 NULL
 
+#' @export
 new_spec_dist_viewpoint <- function(half_life) {
   checkmate::qassert(half_life, "N1(0,)")
   new_viewpoint(
@@ -31,7 +32,7 @@ new_spec_dist_viewpoint <- function(half_life) {
                                                offset = TRUE)
       if (length(chord_ids) > 1) {
         if (verbose) {
-          message("Computing spectral distances...")
+          message("Computing spectral distances (half life = ", half_life, ")...")
           pb <- utils::txtProgressBar(
             min = 1, max = length(chord_ids), style = 3)
         }
@@ -45,7 +46,7 @@ new_spec_dist_viewpoint <- function(half_life) {
       res
     }
   )
-} %>% register_viewpoint()
+}
 
 get_spectra <- function(chord_ids) {
   purrr::map(
@@ -54,4 +55,4 @@ get_spectra <- function(chord_ids) {
   )
 }
 
-new_spec_dist_viewpoint(half_life = 3)
+new_spec_dist_viewpoint(half_life = 3) %>% register_viewpoint()

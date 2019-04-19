@@ -22,7 +22,14 @@ Imports:
     yaml,
     withr,
     tibble,
-    dplyr
+    dplyr,
+    zeallot,
+    checkmate,
+    ppm,
+    purrr,
+    readr,
+    rlang,
+    methods
 Collate: 
     '1-compute-viewpoints.R'
     '2-compute-ppm-analyses.R'
@@ -43,7 +50,8 @@ Collate:
 Remotes:
     pmcharrison/hrep,
     pmcharrison/hvrmap,
-    pmcharrison/specdec
+    pmcharrison/specdec,
+    pmcharison/ppm
 Suggests: 
     testthat
 LinkingTo: 
