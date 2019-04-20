@@ -70,8 +70,8 @@ ppm_test <- function(seq_id, i, num_seq, model_spec,
                      viewpoints, viewpoint_dir, viewpoints_observed,
                      ltm_models, stm_opt, output_dir) {
   stopifnot(length(viewpoints) == length(ltm_models),
-            identical(purrr::map_chr(viewpoints, "name"), names(ltm_models)))
-
+            length(viewpoints) == 0L ||
+              identical(purrr::map_chr(viewpoints, "name"), names(ltm_models)))
   file <- file.path(viewpoint_dir, "viewpoints-test", paste0(seq_id, ".rds"))
   if (!file.exists(file)) stop("failed to find viewpoint file ", file)
   viewpoints_continuations <- readRDS(file)$discrete
@@ -82,7 +82,7 @@ ppm_test <- function(seq_id, i, num_seq, model_spec,
                        num_events,
                        hrep::alphabet_size("pc_chord")),
                data = as.numeric(NA))
-  dimnames(res) <- list(model_spec$label)
+  dimnames(res) <- list(if (nrow(model_spec) > 0) model_spec$label else character())
   class(res) <- c("ppm_output", "array")
 
   message("  Predicting test sequence ", i, " out of ", num_seq, "...")
@@ -203,11 +203,17 @@ ppm_write_about <- function(output_dir, stm_opt, ltm_opt,
 ppm_identify_models <- function(stm_opt, ltm_opt, viewpoints, output_dir) {
   model_classes <- c(if (stm_opt$enabled) "stm",
                      if (ltm_opt$enabled) "ltm")
-  models <- purrr::map_dfr(viewpoints,
-                           ~ tibble(class = model_classes,
-                                    viewpoint = .$name,
-                                    alphabet_size = .$alphabet_size,
-                                    label = paste(class, viewpoint, sep = "_"))) %>%
+  models <- tibble(class = character(),
+                   viewpoint = character(),
+                   alphabet_size = integer(),
+                   label = character()) %>%
+    dplyr::bind_rows(
+      purrr::map_dfr(viewpoints,
+                     ~ tibble(class = model_classes,
+                              viewpoint = .$name,
+                              alphabet_size = .$alphabet_size,
+                              label = paste(class, viewpoint, sep = "_")))
+    ) %>%
     tibble::add_column(., id = seq_len(nrow(.)), .before = 1L)
   write.csv(models, file.path(output_dir, "models.csv"), row.names = FALSE)
   models

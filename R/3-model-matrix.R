@@ -1,8 +1,9 @@
+#' @export
 compute_model_matrix <- function(
   parent_dir,
   max_sample = 1e4,
   sample_seed = 1,
-  poly_degree = 3L,
+  poly_degree = 4L,
   na_val = 0,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
@@ -165,7 +166,7 @@ add_polynomials <- function(continuous_model_matrix, predictors, poly_degree, na
         dplyr::select(c("seq_id", "event_id", "symbol", "observed", "legal")),
       vals
     ),
-    coefs = purrr::map(res, "coefs")
+    poly_coefs = purrr::map(res, "coefs")
   )
 }
 

@@ -1,3 +1,4 @@
+#' @export
 viewpoint_regression <- function(
   parent_dir,
   max_sample = 1e4,
@@ -52,10 +53,12 @@ write_regression_about <- function(output_dir, max_sample, sample_seed, poly_deg
     saveRDS(file.path(output_dir, "about.rds"))
 }
 
+#' @export
 plot_marginal <- function(x, viewpoint) {
   UseMethod("plot_marginal")
 }
 
+#' @export
 plot_marginal.viewpoint_regression <- function(x, viewpoint) {
   checkmate::qassert(viewpoint, "S1")
   continuous_viewpoints <- x$predictors %>%
@@ -181,8 +184,8 @@ permute_matrices <- function(observation_matrix,
       new_continuation_matrices[[seq_event_id]][symbol, ]
     }) %>% do.call(rbind, .)
 
-  list(new_observation_matrix,
-       new_continuation_matrices)
+  list(new_obs_matrix = new_observation_matrix,
+       new_con_matrices = new_continuation_matrices)
 }
 
 permute_cols <- function(df, cols) {
