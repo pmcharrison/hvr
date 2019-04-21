@@ -52,6 +52,7 @@ Remotes:
     pmcharrison/specdec,
     pmcharison/ppm
 Suggests: 
-    testthat
+    testthat,
+    ggplot2
 LinkingTo: 
     Rcpp

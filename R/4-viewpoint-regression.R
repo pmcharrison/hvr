@@ -54,12 +54,12 @@ write_regression_about <- function(output_dir, max_sample, sample_seed, poly_deg
 }
 
 #' @export
-plot_marginal <- function(x, viewpoint) {
-  UseMethod("plot_marginal")
+get_marginal <- function(x, viewpoint) {
+  UseMethod("get_marginal")
 }
 
 #' @export
-plot_marginal.viewpoint_regression <- function(x, viewpoint) {
+get_marginal.viewpoint_regression <- function(x, viewpoint) {
   checkmate::qassert(viewpoint, "S1")
   continuous_viewpoints <- x$predictors %>%
     dplyr::filter(!.data$discrete) %>%
@@ -83,8 +83,95 @@ plot_marginal.viewpoint_regression <- function(x, viewpoint) {
     {x$par[.]}
 
   y <- poly_x %*% matrix(par, ncol = 1)
-  plot(z_seq, y, type = "l", xlab = "Feature value (z-score)", ylab = "Effect",
-       main = viewpoint)
+
+  tibble(feature_raw = x_seq,
+         feature_z = z_seq,
+         effect = y)
+}
+
+#' @export
+plot_perm_int <- function(
+  x,
+  gg = FALSE,
+  labels = character(),
+  # axis_1 = "Viewpoint",
+  axis_label = "Model reliance (bits)",
+  mai = c(1, 2.5, 0, 0.5),
+  ...
+) {
+  UseMethod("plot_perm_int")
+}
+
+#' @export
+plot_perm_int.viewpoint_regression <- function(
+  x,
+  gg = FALSE,
+  labels = character(),
+  # axis_1 = "Viewpoint",
+  axis_label = "Model reliance (bits)",
+  mai = c(1, 2.5, 0, 0.5),
+  ...
+) {
+  dat <- x$perm_int
+  names(dat) <- plyr::revalue(names(dat), labels, warn_missing = FALSE)
+
+  if (gg) {
+    tibble(viewpoint = factor(names(dat),
+                              levels = sort(names(dat), decreasing = TRUE)),
+           perm_int = as.numeric(dat)) %>%
+      ggplot2::ggplot(ggplot2::aes_string("viewpoint", "perm_int")) +
+      ggplot2::geom_bar(colour = "black", fill = "#6ba3ff", stat = "identity") +
+      ggplot2::scale_x_discrete(NULL) +
+      ggplot2::scale_y_continuous(axis_label) +
+      ggplot2::coord_flip()
+  } else {
+    withr::with_par(list(mai = mai), {
+      dat %>%
+        {.[order(names(dat), decreasing = TRUE)]} %>%
+        barplot(horiz = TRUE, las = 1, xlab = axis_label, ...)
+    })
+  }
+}
+
+#' @export
+plot_marginal <- function(x,
+                          viewpoint,
+                          gg = FALSE,
+                          title = viewpoint,
+                          x_lab = "Feature value (z-score)",
+                          y_lab = "Odds ratio") {
+  UseMethod("plot_marginal")
+}
+
+#' @export
+plot_marginal.viewpoint_regression <- function(
+  x,
+  viewpoint,
+  gg = FALSE,
+  title = viewpoint,
+  x_lab = "Feature value (z-score)",
+  y_lab = "Log odds"
+) {
+  dat <- get_marginal(x, viewpoint = viewpoint)
+
+  if (gg) {
+    if (!requireNamespace("ggplot2", quietly = TRUE))
+      stop("please install the ggplot2 package before using this function")
+    p <- ggplot2::ggplot(dat, ggplot2::aes_string("feature_z", "effect")) +
+      ggplot2::geom_line() +
+      ggplot2::scale_x_continuous(x_lab) +
+      ggplot2::scale_y_continuous(y_lab)
+    if (!is.null(title)) p <- p + ggplot2::ggtitle(title)
+    p
+
+  } else {
+    plot(dat$feature_z,
+         dat$effect,
+         type = "l",
+         xlab = x_lab,
+         ylab = y_lab,
+         main = viewpoint)
+  }
 }
 
 conduct_regression <- function(model_matrix, corpus,
