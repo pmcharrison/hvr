@@ -12,7 +12,8 @@ test_that("regression tests", {
     corpus = corpus,
     parent_dir = dir,
     seq_test = 1,
-    viewpoints = list(hvr_viewpoints$pc_chord)
+    viewpoints = list(hvr_viewpoints$pc_chord,
+                      hvr_viewpoints$hutch_78_roughness)
   )
 
   hvr::compute_ppm_analyses(dir)
@@ -62,4 +63,6 @@ test_that("regression tests", {
 
   expect_equal(stm_obs_probs,
                stm_obs_probs_2)
+
+  hvr::compute_model_matrix(dir)
 })
