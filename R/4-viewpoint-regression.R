@@ -97,6 +97,7 @@ plot_perm_int <- function(
   # axis_1 = "Viewpoint",
   axis_label = "Model reliance (bits)",
   mai = c(1, 2.5, 0, 0.5),
+  order_by_label = FALSE,
   ...
 ) {
   UseMethod("plot_perm_int")
@@ -108,16 +109,19 @@ plot_perm_int.viewpoint_regression <- function(
   gg = FALSE,
   labels = character(),
   # axis_1 = "Viewpoint",
-  axis_label = "Model reliance (bits)",
+  axis_label = "Model reliance (bits/chord)",
   mai = c(1, 2.5, 0, 0.5),
+  order_by_label = FALSE,
   ...
 ) {
   dat <- x$perm_int
   names(dat) <- plyr::revalue(names(dat), labels, warn_missing = FALSE)
+  if (order_by_label)
+    dat <- dat[order(names(dat))] else
+      dat <- dat[order(dat)]
 
   if (gg) {
-    tibble(viewpoint = factor(names(dat),
-                              levels = sort(names(dat), decreasing = TRUE)),
+    tibble(viewpoint = factor(names(dat), levels = names(dat)),
            perm_int = as.numeric(dat)) %>%
       ggplot2::ggplot(ggplot2::aes_string("viewpoint", "perm_int")) +
       ggplot2::geom_bar(colour = "black", fill = "#6ba3ff", stat = "identity") +
@@ -139,7 +143,8 @@ plot_marginal <- function(x,
                           gg = FALSE,
                           title = viewpoint,
                           x_lab = "Feature value (z-score)",
-                          y_lab = "Odds ratio") {
+                          y_lab = "Odds ratio",
+                          reverse_x = FALSE) {
   UseMethod("plot_marginal")
 }
 
@@ -150,9 +155,11 @@ plot_marginal.viewpoint_regression <- function(
   gg = FALSE,
   title = viewpoint,
   x_lab = "Feature value (z-score)",
-  y_lab = "Log odds"
+  y_lab = "Log odds",
+  reverse_x = FALSE
 ) {
   dat <- get_marginal(x, viewpoint = viewpoint)
+  if (reverse_x) dat$effect <- dat$effect * - 1
 
   if (gg) {
     if (!requireNamespace("ggplot2", quietly = TRUE))
@@ -174,6 +181,43 @@ plot_marginal.viewpoint_regression <- function(
   }
 }
 
+#' @export
+predict_symbols <- function(model_matrix, par, observed_only = TRUE) {
+  model_matrix %>%
+    dplyr::group_by(seq_id, event_id) %>%
+    dplyr::group_split() %>%
+    plyr::llply(predict_symbol, par, observed_only, .progress = "text") %>%
+    dplyr::bind_rows()
+}
+
+predict_symbol <- function(x, par, observed_only) {
+  checkmate::qassert(observed_only, "B1")
+  if (!observed_only) stop("observed_only = FALSE is not yet implemented")
+  stopifnot(all(x$symbol == seq_len(nrow(x))))
+  if (is.null(names(par)) || any(!names(par) %in% names(x)))
+    stop("'par' must be named, and all names must be present in model matrix")
+
+  mat <- dplyr::select(x, names(par)) %>% as.matrix()
+  exp_energies <- exp(mat %*% par)
+
+  observed <- which(x$observed)
+  if (length(observed) > 1) stop("cannot have multiple observed events")
+  if (length(observed) < 1) stop("cannot have zero observed events")
+  if (!x$legal[observed]) stop("cannot observe an illegal event")
+
+  seq_id <- unique(x$seq_id)
+  event_id <- unique(x$event_id)
+  stopifnot(length(seq_id) == 1L,
+            length(event_id) == 1L)
+
+  tibble(
+    seq_id,
+    event_id,
+    symbol = observed,
+    probability = exp_energies[observed] / sum(exp_energies[x$legal, ])
+  )
+}
+
 conduct_regression <- function(model_matrix, corpus,
                                predictors, poly_degree, poly_coefs, moments,
                                max_iter, perm_int, perm_int_seed, perm_int_reps) {
@@ -184,7 +228,7 @@ conduct_regression <- function(model_matrix, corpus,
     dplyr::select(predictors$label) %>%
     as.matrix()
 
-  tmp <- continuation_matrices <- model_matrix %>%
+  tmp <- model_matrix %>%
     dplyr::group_by(.data$seq_event_id) %>%
     dplyr::group_split() %>%
     purrr::map(~ dplyr::arrange(., .data$symbol))

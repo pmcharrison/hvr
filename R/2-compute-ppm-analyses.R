@@ -71,7 +71,7 @@ ppm_test <- function(seq_id, i, num_seq, model_spec,
                      ltm_models, stm_opt, output_dir) {
   stopifnot(length(viewpoints) == length(ltm_models),
             length(viewpoints) == 0L ||
-              identical(purrr::map_chr(viewpoints, "name"), names(ltm_models)))
+              all(purrr::map_chr(viewpoints, "name") == names(ltm_models)))
   file <- file.path(viewpoint_dir, "viewpoints-test", paste0(seq_id, ".rds"))
   if (!file.exists(file)) stop("failed to find viewpoint file ", file)
   viewpoints_continuations <- readRDS(file)$discrete

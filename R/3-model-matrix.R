@@ -5,6 +5,7 @@ compute_model_matrix <- function(
   sample_seed = 1,
   poly_degree = 4L,
   na_val = 0,
+  filter_corpus = NULL,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
@@ -17,7 +18,8 @@ compute_model_matrix <- function(
   max_sample <- as.integer(max_sample)
   checkmate::qassert(poly_degree, "X1[1,)")
   checkmate::qassert(allow_repeats, "B1")
-  corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed)
+  stopifnot(is.null(filter_corpus) || is.function(filter_corpus))
+  corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed, filter_corpus)
   predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
 
   R.utils::mkdirs(output_dir)
@@ -226,16 +228,23 @@ list_viewpoints <- function(viewpoint_dir) {
     about$continuous) %>% sort()
 }
 
-get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_seed) {
+get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_seed, filter_corpus) {
   corpus <- readRDS(file.path(viewpoint_dir, "corpus.rds")) %>%
     as.list() %>%
     purrr::map2_dfr(seq_along(.), ., ~ tibble(seq_id = .x,
                                               event_id = seq_along(.y),
                                               symbol = as.integer(.y),
                                               prev_symbol = c(as.integer(NA),
-                                                              .data$symbol[- length(.data$symbol)]),
-                                              selected = FALSE)) %>%
+                                                              .data$symbol[- length(.data$symbol)]))) %>%
     dplyr::filter(.data$seq_id %in% test_seq)
+
+  if (!is.null(filter_corpus)) corpus <- filter_corpus(corpus)
+  if (!(tibble::is_tibble(corpus) && identical(names(corpus), c(
+    "seq_id", "event_id", "symbol", "prev_symbol"
+  )))) stop("filter_corpus must return a tibble preserving the columns ",
+            "of its input")
+
+  corpus$selected <- FALSE
 
   withr::with_seed(sample_seed, {
     ind <- sample(nrow(corpus),
