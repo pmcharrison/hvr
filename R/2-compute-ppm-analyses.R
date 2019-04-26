@@ -144,7 +144,7 @@ print.ppm_output <- function(x, ...) {
 
 ppm_train <- function(viewpoint, training, viewpoints_observed, ltm_opt) {
   checkmate::qassert(training, "X")
-  dat <- viewpoints_observed %>%
+  dat <- viewpoints_observed[training] %>%
     purrr::map(~ .[viewpoint$name, ]) %>%
     purrr::map(na.omit)
   mod <- init_ppm_mod(viewpoint$alphabet_size, ltm_opt)
