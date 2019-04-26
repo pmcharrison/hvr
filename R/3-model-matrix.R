@@ -198,7 +198,7 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir, na_val) {
       symbol = seq_len(hrep::alphabet_size("pc_chord")),
       t(raw[models, event_id, ]) %>%
         tibble::as_tibble() %>%
-        dplyr::mutate_all(~ log2(.)) %>%
+        dplyr::mutate_all(~ log(.)) %>%
         dplyr::mutate_all(~ dplyr::if_else(is.na(.), na_val, .))
     ) %>% tibble::as_tibble()
   })
