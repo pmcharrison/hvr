@@ -1,36 +1,35 @@
 #' @export
 viewpoint_regression <- function(
   parent_dir,
-  max_sample = 1e4,
-  sample_seed = 1,
   poly_degree = 3L,
   max_iter = 500,
   perm_int = TRUE,
   perm_int_seed = 1,
   perm_int_reps = 25,
   model_matrix_dir = file.path(parent_dir, "2-model-matrix"),
-  output_dir = file.path(parent_dir, "3-viewpoint-regression"),
-  viewpoints = readRDS(file.path(model_matrix_dir, "about.rds"))$viewpoints
+  output_dir = file.path(parent_dir, "3-viewpoint-regression")
 ) {
+  viewpoints <- readRDS(file.path(model_matrix_dir, "about.rds"))$viewpoints
+
   checkmate::qassert(poly_degree, "X1[1,)")
   poly_degree <- as.integer(poly_degree)
 
-  checkmate::qassert(max_sample, "X1[50,)")
-  max_sample <- as.integer(max_sample)
-
   message("Loading data...")
-  predictors <- get_regression_predictors(model_matrix_dir, viewpoints, poly_degree)
-  corpus <- get_regression_corpus(model_matrix_dir, max_sample, sample_seed)
-  model_matrix <- get_regression_model_matrix(corpus, model_matrix_dir, predictors)
+  predictors <- get_regression_predictors(model_matrix_dir)
+  corpus <- get_regression_corpus(model_matrix_dir)
+  observation_matrix <- readRDS(file.path(model_matrix_dir, "observation-matrix.rds"))
+  continuation_matrices <- readRDS(file.path(model_matrix_dir, "continuation-matrices.rds"))
+  legal <- readRDS(file.path(model_matrix_dir, "legal.rds"))
   poly_coefs <- readRDS(file.path(model_matrix_dir, "poly-coefs.rds"))
   moments <- readRDS(file.path(model_matrix_dir, "moments.rds"))
   message("  done.")
 
-  res <- conduct_regression(model_matrix, corpus, predictors, poly_degree, poly_coefs, moments,
+  res <- conduct_regression(observation_matrix, continuation_matrices, legal,
+                            corpus, predictors, poly_degree, poly_coefs, moments,
                             max_iter, perm_int, perm_int_seed, perm_int_reps)
 
   R.utils::mkdirs(output_dir)
-  write_regression_about(output_dir, max_sample, sample_seed, poly_degree,
+  write_regression_about(output_dir, poly_degree,
                          perm_int, perm_int_seed, perm_int_reps, viewpoints)
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(res, file.path(output_dir, "results.rds"))
@@ -38,12 +37,10 @@ viewpoint_regression <- function(
   invisible(res)
 }
 
-write_regression_about <- function(output_dir, max_sample, sample_seed, poly_degree,
+write_regression_about <- function(output_dir, poly_degree,
                                    perm_int, perm_int_seed, perm_int_reps,
                                    viewpoints) {
   list(
-    max_sample = max_sample,
-    sample_seed = sample_seed,
     poly_degree = poly_degree,
     perm_int = perm_int,
     perm_int_seed = perm_int_seed,
@@ -181,64 +178,45 @@ plot_marginal.viewpoint_regression <- function(
   }
 }
 
-#' @export
-predict_symbols <- function(model_matrix, par, observed_only = TRUE) {
-  model_matrix %>%
-    dplyr::group_by(seq_id, event_id) %>%
-    dplyr::group_split() %>%
-    plyr::llply(predict_symbol, par, observed_only, .progress = "text") %>%
-    dplyr::bind_rows()
-}
+# predict_symbols <- function(model_matrix, par, observed_only = TRUE) {
+#   model_matrix %>%
+#     dplyr::group_by(seq_id, event_id) %>%
+#     dplyr::group_split() %>%
+#     plyr::llply(predict_symbol, par, observed_only, .progress = "text") %>%
+#     dplyr::bind_rows()
+# }
+#
+# predict_symbol <- function(x, par, observed_only) {
+#   checkmate::qassert(observed_only, "B1")
+#   if (!observed_only) stop("observed_only = FALSE is not yet implemented")
+#   stopifnot(all(x$symbol == seq_len(nrow(x))))
+#   if (is.null(names(par)) || any(!names(par) %in% names(x)))
+#     stop("'par' must be named, and all names must be present in model matrix")
+#
+#   mat <- dplyr::select(x, names(par)) %>% as.matrix()
+#   exp_energies <- exp(mat %*% par)
+#
+#   observed <- which(x$observed)
+#   if (length(observed) > 1) stop("cannot have multiple observed events")
+#   if (length(observed) < 1) stop("cannot have zero observed events")
+#   if (!x$legal[observed]) stop("cannot observe an illegal event")
+#
+#   seq_id <- unique(x$seq_id)
+#   event_id <- unique(x$event_id)
+#   stopifnot(length(seq_id) == 1L,
+#             length(event_id) == 1L)
+#
+#   tibble(
+#     seq_id,
+#     event_id,
+#     symbol = observed,
+#     probability = exp_energies[observed] / sum(exp_energies[x$legal, ])
+#   )
+# }
 
-predict_symbol <- function(x, par, observed_only) {
-  checkmate::qassert(observed_only, "B1")
-  if (!observed_only) stop("observed_only = FALSE is not yet implemented")
-  stopifnot(all(x$symbol == seq_len(nrow(x))))
-  if (is.null(names(par)) || any(!names(par) %in% names(x)))
-    stop("'par' must be named, and all names must be present in model matrix")
-
-  mat <- dplyr::select(x, names(par)) %>% as.matrix()
-  exp_energies <- exp(mat %*% par)
-
-  observed <- which(x$observed)
-  if (length(observed) > 1) stop("cannot have multiple observed events")
-  if (length(observed) < 1) stop("cannot have zero observed events")
-  if (!x$legal[observed]) stop("cannot observe an illegal event")
-
-  seq_id <- unique(x$seq_id)
-  event_id <- unique(x$event_id)
-  stopifnot(length(seq_id) == 1L,
-            length(event_id) == 1L)
-
-  tibble(
-    seq_id,
-    event_id,
-    symbol = observed,
-    probability = exp_energies[observed] / sum(exp_energies[x$legal, ])
-  )
-}
-
-conduct_regression <- function(model_matrix, corpus,
-                               predictors, poly_degree, poly_coefs, moments,
+conduct_regression <- function(observation_matrix, continuation_matrices, legal,
+                               corpus, predictors, poly_degree, poly_coefs, moments,
                                max_iter, perm_int, perm_int_seed, perm_int_reps) {
-  message("Reshaping data...")
-
-  observation_matrix <- model_matrix %>%
-    dplyr::filter(.data$observed) %>%
-    dplyr::select(predictors$label) %>%
-    as.matrix()
-
-  tmp <- model_matrix %>%
-    dplyr::group_by(.data$seq_event_id) %>%
-    dplyr::group_split() %>%
-    purrr::map(~ dplyr::arrange(., .data$symbol))
-
-  continuation_matrices <- tmp %>%
-    purrr::map(dplyr::select, predictors$label) %>%
-    purrr::map(as.matrix)
-
-  legal <- tmp %>%
-    purrr::map("legal")
 
   message("Fitting conditional logit model...")
 
@@ -342,43 +320,11 @@ permute_cols <- function(df, cols) {
 #   m
 # }
 
-get_regression_predictors <- function(model_matrix_dir, viewpoints, poly_degree) {
-  available <- readRDS(file.path(model_matrix_dir, "predictors.rds"))
-
-  checkmate::qassert(viewpoints, "S[1,)")
-  valid <- viewpoints %in% available$viewpoint
-  if (any(!valid)) stop("unrecognised viewpoints: ",
-                        paste(viewpoints[!valid], collapse = ", "),
-                        "\n  available viewpoints: ",
-                        paste(unique(available$viewpoint), collapse = ", "))
-  available %>%
-    dplyr::filter(.data$discrete | .data$poly_degree <= !!poly_degree) %>%
-    dplyr::filter(.data$viewpoint %in% viewpoints)
-}
-
-get_regression_model_matrix <- function(corpus, model_matrix_dir, predictors) {
-  raw <- readRDS(file.path(model_matrix_dir, "model-matrix.rds"))
-  dplyr::inner_join(raw,
-                    dplyr::select(corpus, - .data$symbol),
-                    by = c("seq_id", "event_id")) %>%
-    dplyr::select(c("seq_event_id", "seq_id", "event_id", "symbol",
-                    "observed", "legal", predictors$label))
+get_regression_predictors <- function(model_matrix_dir) {
+  readRDS(file.path(model_matrix_dir, "predictors.rds"))
 }
 
 
-get_regression_corpus <- function(model_matrix_dir, max_sample, sample_seed) {
-  corpus <- readRDS(file.path(model_matrix_dir, "corpus.rds"))
-  corpus$selected <- FALSE
-
-  withr::with_seed(sample_seed, {
-    ind <- sample(nrow(corpus),
-                  pmin(nrow(corpus), max_sample),
-                  replace = FALSE) %>% sort()
-    corpus$selected[ind] <- TRUE
-  })
-
-  corpus %>%
-    dplyr::filter(.data$selected) %>%
-    dplyr::select(- .data$selected) %>%
-    tibble::add_column(., seq_event_id = seq_len(nrow(.)), .before = 1)
+get_regression_corpus <- function(model_matrix_dir) {
+  readRDS(file.path(model_matrix_dir, "corpus.rds"))
 }

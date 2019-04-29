@@ -37,12 +37,30 @@ compute_model_matrix <- function(
 
   check_model_matrix(model_matrix)
 
+  observation_matrix <- model_matrix %>%
+    dplyr::filter(.data$observed) %>%
+    dplyr::select(predictors$label) %>%
+    as.matrix()
+
+  tmp <- model_matrix %>%
+    split(., .$seq_event_id) %>%
+    magrittr::set_names(NULL)
+
+  continuation_matrices <- tmp %>%
+    purrr::map(dplyr::select, predictors$label) %>%
+    purrr::map(as.matrix)
+
+  legal <- tmp %>% purrr::map("legal")
+
   message("Saving outputs...")
   saveRDS(tmp$moments, file.path(output_dir, "moments.rds"))
   saveRDS(tmp$poly_coefs, file.path(output_dir, "poly-coefs.rds"))
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(predictors, file.path(output_dir, "predictors.rds"))
-  saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))
+  # saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))
+  saveRDS(observation_matrix, file.path(output_dir, "observation-matrix.rds"))
+  saveRDS(continuation_matrices, file.path(output_dir, "continuation-matrices.rds"))
+  saveRDS(legal, file.path(output_dir, "legal.rds"))
 }
 
 check_model_matrix <- function(model_matrix) {
@@ -136,8 +154,10 @@ seq_continuous_model_matrix <- function(events, predictors, viewpoint_dir, allow
           events$event_id[i] == 1L |
           .data$symbol != events$prev_symbol[i]
       ),
-      t(raw[viewpoints, events$event_id[i], ]) %>%
-        tibble::as_tibble()
+      array(raw[viewpoints, events$event_id[i], ],
+            dim = c(length(viewpoints), hrep::alphabet_size("pc_chord")),
+            dimnames = list(viewpoints)) %>%
+        t() %>% tibble::as_tibble()
     )
   })
 }
@@ -192,9 +212,10 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir, na_val) {
             length(seq_id) == 1)
   raw <- readRDS(file.path(ppm_dir, "output", paste0(seq_id, ".rds")))
 
-  purrr::pmap_dfr(events, function(seq_id, event_id, symbol, prev_symbol) {
+  purrr::pmap_dfr(events, function(seq_event_id, seq_id, event_id,
+                                   symbol, prev_symbol) {
     cbind(
-      seq_id, event_id,
+      seq_event_id, seq_id, event_id,
       symbol = seq_len(hrep::alphabet_size("pc_chord")),
       t(raw[models, event_id, ]) %>%
         tibble::as_tibble() %>%
@@ -255,5 +276,6 @@ get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_
 
   corpus %>%
     dplyr::filter(.data$selected) %>%
-    dplyr::select(- .data$selected)
+    dplyr::select(- .data$selected) %>%
+    tibble::add_column(., seq_event_id = seq_len(nrow(.)), .before = 1)
 }

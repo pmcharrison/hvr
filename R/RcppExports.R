@@ -9,6 +9,11 @@ cosine_similarities <- function(vector, vectors) {
     .Call(`_hvr_cosine_similarities`, vector, vectors)
 }
 
+#' @export
+event_probs <- function(weights, observation_matrix, continuation_matrices, legal) {
+    .Call(`_hvr_event_probs`, weights, observation_matrix, continuation_matrices, legal)
+}
+
 cost <- function(weights, observation_matrix, continuation_matrices, legal) {
     .Call(`_hvr_cost`, weights, observation_matrix, continuation_matrices, legal)
 }

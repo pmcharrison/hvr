@@ -44,6 +44,11 @@ test_that("misc", {
   )
 
   expect_equal(
+    cost_r(weights, observation_matrix, continuation_matrices, legal),
+    mean(- log2(event_probs(weights, observation_matrix, continuation_matrices, legal)))
+  )
+
+  expect_equal(
     numDeriv::jacobian(cost, weights,
                        observation_matrix = observation_matrix,
                        continuation_matrices = continuation_matrices,

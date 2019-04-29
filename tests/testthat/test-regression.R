@@ -65,4 +65,5 @@ test_that("regression tests", {
                stm_obs_probs_2)
 
   hvr::compute_model_matrix(dir)
+  hvr::viewpoint_regression(dir, poly_degree = 1)
 })

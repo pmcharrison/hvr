@@ -3,18 +3,18 @@
 #include <iostream>
 using namespace Rcpp;
 
+//' @export
 // [[Rcpp::export]]
-double cost (const NumericVector &weights,
-             const NumericMatrix &observation_matrix,
-             const List &continuation_matrices,
-             const List &legal) {
+NumericVector event_probs (const NumericVector &weights,
+                           const NumericMatrix &observation_matrix,
+                           const List &continuation_matrices,
+                           const List &legal) {
   int num_weights = weights.size();
-  int num_seq = continuation_matrices.size();
   int num_obs = observation_matrix.nrow();
 
-  double corpus_cost = 0.0;
+  NumericVector probs(num_obs);
 
-  for (int i = 0; i < num_seq; i ++) { // over events
+  for (int i = 0; i < num_obs; i ++) { // over events
     const NumericMatrix &continuation_matrix = continuation_matrices[i];
     const LogicalVector &legal_i = legal[i];
     if (legal_i.size() != continuation_matrix.nrow())
@@ -38,15 +38,24 @@ double cost (const NumericVector &weights,
       }
     }
 
-    // Rcout << "alphabet_size = " << alphabet_size << "\n";
-    // Rcout << "observation_energy = " << observation_energy << "\n";
-    double observation_probability = exp(observation_energy) / z;
-    // Rcout << "observation_probability = " << observation_probability << "\n";
-    corpus_cost -= log(observation_probability);
+    probs[i] = exp(observation_energy) / z;
   }
-  double event_cost_nats = corpus_cost / num_obs;
-  double event_cost_bits = event_cost_nats * log2(exp(1.0));
-  return event_cost_bits;
+  return probs;
+}
+
+// [[Rcpp::export]]
+double cost (const NumericVector &weights,
+             const NumericMatrix &observation_matrix,
+             const List &continuation_matrices,
+             const List &legal) {
+  NumericVector probs = event_probs(weights,
+                                    observation_matrix,
+                                    continuation_matrices,
+                                    legal);
+  double cost = 0.0;
+  int n = probs.size();
+  for (int i = 0; i < n; i ++) cost -= log2(probs[i]) / n;
+  return cost;
 }
 
 // [[Rcpp::export]]
