@@ -26,11 +26,11 @@ compute_model_matrix <- function(
   write_model_matrix_about(max_sample, sample_seed, poly_degree, viewpoints,
                            output_dir)
 
-  tmp <- get_continuous_model_matrix(corpus, predictors, viewpoint_dir,
+  tmp_1 <- get_continuous_model_matrix(corpus, predictors, viewpoint_dir,
                                      poly_degree, na_val, allow_repeats)
 
   model_matrix <- get_model_matrix(
-    tmp$continuous_model_matrix,
+    tmp_1$continuous_model_matrix,
     get_discrete_model_matrix(corpus, predictors, ppm_dir, na_val),
     predictors
   )
@@ -42,19 +42,19 @@ compute_model_matrix <- function(
     dplyr::select(predictors$label) %>%
     as.matrix()
 
-  tmp <- model_matrix %>%
+  tmp_2 <- model_matrix %>%
     split(., .$seq_event_id) %>%
     magrittr::set_names(NULL)
 
-  continuation_matrices <- tmp %>%
+  continuation_matrices <- tmp_2 %>%
     purrr::map(dplyr::select, predictors$label) %>%
     purrr::map(as.matrix)
 
-  legal <- tmp %>% purrr::map("legal")
+  legal <- tmp_2 %>% purrr::map("legal")
 
   message("Saving outputs...")
-  saveRDS(tmp$moments, file.path(output_dir, "moments.rds"))
-  saveRDS(tmp$poly_coefs, file.path(output_dir, "poly-coefs.rds"))
+  saveRDS(tmp_1$moments, file.path(output_dir, "moments.rds"))
+  saveRDS(tmp_1$poly_coefs, file.path(output_dir, "poly-coefs.rds"))
   saveRDS(corpus, file.path(output_dir, "corpus.rds"))
   saveRDS(predictors, file.path(output_dir, "predictors.rds"))
   # saveRDS(model_matrix, file.path(output_dir, "model-matrix.rds"))

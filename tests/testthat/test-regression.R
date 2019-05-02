@@ -8,15 +8,16 @@ test_that("regression tests", {
     purrr::map(hrep::coded_vec, "pc_chord") %>%
     hrep::corpus("pc_chord")
 
-  hvr::compute_viewpoints(
-    corpus = corpus,
-    parent_dir = dir,
-    seq_test = 1,
-    viewpoints = list(hvr_viewpoints$pc_chord,
-                      hvr_viewpoints$hutch_78_roughness)
-  )
-
-  hvr::compute_ppm_analyses(dir)
+  capture.output({
+    hvr::compute_viewpoints(
+      corpus = corpus,
+      parent_dir = dir,
+      seq_test = 1,
+      viewpoints = list(hvr_viewpoints$pc_chord,
+                        hvr_viewpoints$hutch_78_roughness)
+    )
+    hvr::compute_ppm_analyses(dir)
+  })
 
   ppm_res <- readRDS(file.path(dir, "1-ppm", "output", "1.rds"))
   stm_res <- ppm_res["stm_pc_chord", , ]
@@ -64,6 +65,11 @@ test_that("regression tests", {
   expect_equal(stm_obs_probs,
                stm_obs_probs_2)
 
-  hvr::compute_model_matrix(dir)
-  hvr::viewpoint_regression(dir, poly_degree = 1)
+  capture.output({
+    hvr::compute_model_matrix(dir)
+    res <- hvr::viewpoint_regression(dir, poly_degree = 1)
+  })
+
+  expect_true(!is.null(res$moments))
+  expect_true(!is.null(res$poly_coefs))
 })

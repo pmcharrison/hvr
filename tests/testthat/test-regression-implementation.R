@@ -54,6 +54,7 @@ test_that("misc", {
                        continuation_matrices = continuation_matrices,
                        legal = legal) %>%
       as.numeric(),
-    gradient(weights, observation_matrix, continuation_matrices, legal)
+    gradient(weights, observation_matrix, continuation_matrices, legal),
+    tolerance = 1e-6
   )
 })
