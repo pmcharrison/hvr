@@ -23,8 +23,8 @@ test_that("regression tests", {
   vp_about <- readRDS(file.path(dir, "0-viewpoints", "about.rds"))
   expect_equal(
     vp_about$viewpoint_labels,
-    tibble(name = c("pc_chord", "hutch_78_roughness", "har_18_harmonicity"),
-           label = c("PC chord", "Spectral interference", "Periodicity"))
+    tibble(viewpoint = c("pc_chord", "hutch_78_roughness", "har_18_harmonicity"),
+           viewpoint_label = c("PC chord", "Spectral interference", "Periodicity"))
   )
 
   ppm_res <- readRDS(file.path(dir, "1-ppm", "output", "1.rds"))
@@ -82,4 +82,5 @@ test_that("regression tests", {
   expect_true(!is.null(res$poly_coefs))
 
   plot_marginals(res)
+  plot_discrete_weights(res)
 })

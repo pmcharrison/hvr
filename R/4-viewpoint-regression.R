@@ -4,11 +4,21 @@ viewpoint_regression <- function(
   max_iter = 500,
   perm_int = TRUE,
   perm_int_seed = 1,
-  perm_int_reps = 25,
+  perm_int_reps = 5,
+  allow_negative_weights = FALSE,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   model_matrix_dir = file.path(parent_dir, "2-model-matrix"),
   output_dir = file.path(parent_dir, "3-viewpoint-regression")
 ) {
+  checkmate::qassert(parent_dir, "S1")
+  checkmate::qassert(max_iter, "X1[10,)")
+  checkmate::qassert(perm_int, "B1")
+  checkmate::qassert(perm_int_reps, "X1[1,)")
+  checkmate::qassert(allow_negative_weights, "B1")
+  checkmate::qassert(viewpoint_dir, "S1")
+  checkmate::qassert(model_matrix_dir, "S1")
+  checkmate::qassert(output_dir, "S1")
+
   viewpoint_labels <- readRDS(file.path(viewpoint_dir, "about.rds"))$viewpoint_labels
   viewpoints <- readRDS(file.path(model_matrix_dir, "about.rds"))$viewpoints
   poly_degree <- readRDS(file.path(model_matrix_dir, "about.rds"))$poly_degree
@@ -26,7 +36,7 @@ viewpoint_regression <- function(
   res <- conduct_regression(observation_matrix, continuation_matrices, legal,
                             corpus, predictors, poly_degree, poly_coefs, moments,
                             max_iter, perm_int, perm_int_seed, perm_int_reps,
-                            viewpoint_labels)
+                            viewpoint_labels, allow_negative_weights)
 
   R.utils::mkdirs(output_dir)
   write_regression_about(output_dir, poly_degree,
@@ -48,6 +58,46 @@ write_regression_about <- function(output_dir, poly_degree,
     viewpoints = viewpoints
   ) %>%
     saveRDS(file.path(output_dir, "about.rds"))
+}
+
+#' @export
+get_discrete_weights <- function(x) {
+  UseMethod("get_discrete_weights")
+}
+
+get_discrete_weights.viewpoint_regression <- function(x) {
+  viewpoints <- list_viewpoints(x, continuous = FALSE)
+  tibble(label = names(x$par),
+         par = as.numeric(x$par)) %>%
+    dplyr::left_join(x$predictors, by = "label") %>%
+    dplyr::filter(.data$discrete) %>%
+    dplyr::left_join(x$viewpoint_labels, by = "viewpoint")
+}
+
+#' @export
+plot_discrete_weights <- function(x, x_lab = "Viewpoint", y_lab = "Weight") {
+  UseMethod("plot_discrete_weights")
+}
+
+#' @export
+plot_discrete_weights.viewpoint_regression <- function(
+  x,
+  x_lab = "Viewpoint",
+  y_lab = "Weight",
+  colours = c("#f47513", "#3fccff")
+) {
+  if (!requireNamespace("ggplot2")) stop("ggplot2 must be installed first")
+  get_discrete_weights(x) %>%
+    dplyr::mutate(class = dplyr::recode(class,
+                                        ltm = "Long-term",
+                                        stm = "Short-term")) %>%
+    ggplot2::ggplot(ggplot2::aes(x = viewpoint_label,
+                                 y = par,
+                                 fill = class)) +
+    ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
+    ggplot2::scale_fill_manual("Class", values = colours) +
+    ggplot2::scale_x_discrete(x_lab) +
+    ggplot2::scale_y_continuous(y_lab)
 }
 
 #' @export
@@ -282,14 +332,19 @@ plot_marginal.viewpoint_regression <- function(
 conduct_regression <- function(observation_matrix, continuation_matrices, legal,
                                corpus, predictors, poly_degree, poly_coefs, moments,
                                max_iter, perm_int, perm_int_seed, perm_int_reps,
-                               viewpoint_labels) {
+                               viewpoint_labels, allow_negative_weights) {
 
   message("Fitting conditional logit model...")
+
+  lower_bound <- if (allow_negative_weights)
+    rep(-Inf, times = nrow(predictors)) else
+      dplyr::if_else(predictors$discrete, 0, -Inf)
 
   x <- optim(par = rep(0, times = nrow(predictors)),
              fn = cost,
              gr = gradient,
-             method = "BFGS",
+             method = "L-BFGS-B",
+             lower = lower_bound,
              observation_matrix = observation_matrix,
              continuation_matrices = continuation_matrices,
              legal = legal,
