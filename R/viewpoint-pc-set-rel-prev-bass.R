@@ -3,6 +3,7 @@ NULL
 
 new_viewpoint(
   name  = "pc_set_rel_prev_bass",
+  label = "PC set rel. prev. bass",
   alphabet_size = hrep::alphabet_size("pc_set"),
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {

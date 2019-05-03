@@ -3,6 +3,7 @@ NULL
 
 new_viewpoint(
   name = "bass_int",
+  label = "Bass interval",
   alphabet_size = 12,
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {

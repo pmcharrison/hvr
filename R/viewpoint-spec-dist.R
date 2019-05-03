@@ -6,6 +6,7 @@ new_spec_dist_viewpoint <- function(half_life) {
   checkmate::qassert(half_life, "N1(0,)")
   new_viewpoint(
     name = paste0("spec_dist_", half_life),
+    label = paste0("Spectral distance (HL = ", half_life, ")"),
     alphabet_size = NA,
     discrete = FALSE,
     f_obs = function(chords, chord_ids, ...) {

@@ -24,7 +24,9 @@ compute_viewpoints <- function(corpus,
       seq_pretrain = setdiff(seq_along(corpus), seq_test),
       discrete_viewpoints = Filter(is_discrete, viewpoints) %>%
         purrr::map(~ .[c("name", "alphabet_size")]),
-      continuous_viewpoints = Filter(Negate(is_discrete), viewpoints) %>% purrr::map_chr(name)
+      continuous_viewpoints = Filter(Negate(is_discrete), viewpoints) %>% purrr::map_chr(name),
+      viewpoint_labels = tibble(name = purrr::map_chr(viewpoints, "name"),
+                                label = purrr::map_chr(viewpoints, "label"))
     ),
     file.path(dir, "about.rds")
   )

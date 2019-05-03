@@ -2,14 +2,16 @@
 hvr_viewpoints <- list()
 
 #' @export
-new_viewpoint <- function(name, alphabet_size, discrete, f_obs, f_all) {
+new_viewpoint <- function(name, label, alphabet_size, discrete, f_obs, f_all) {
   checkmate::qassert(name, "S1")
+  checkmate::qassert(label, "S1")
   checkmate::qassert(alphabet_size, "x1")
   checkmate::qassert(discrete, "B1")
   stopifnot(is.function(f_obs))
   stopifnot(is.function(f_all))
   x <- list(
     name = name,
+    label = label,
     alphabet_size = as.integer(alphabet_size),
     discrete = discrete,
     f_obs = f_obs,

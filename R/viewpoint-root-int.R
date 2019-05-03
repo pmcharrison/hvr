@@ -3,6 +3,7 @@ NULL
 
 new_viewpoint(
   name = "root_int",
+  label = "Root interval",
   alphabet_size = 12,
   discrete = TRUE,
   f_obs = function(chords, chord_ids, ...) {
