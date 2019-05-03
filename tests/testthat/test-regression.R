@@ -14,10 +14,18 @@ test_that("regression tests", {
       parent_dir = dir,
       seq_test = 1,
       viewpoints = list(hvr_viewpoints$pc_chord,
-                        hvr_viewpoints$hutch_78_roughness)
+                        hvr_viewpoints$hutch_78_roughness,
+                        hvr_viewpoints$har_18_harmonicity)
     )
     hvr::compute_ppm_analyses(dir)
   })
+
+  vp_about <- readRDS(file.path(dir, "0-viewpoints", "about.rds"))
+  expect_equal(
+    vp_about$viewpoint_labels,
+    tibble(name = c("pc_chord", "hutch_78_roughness", "har_18_harmonicity"),
+           label = c("PC chord", "Spectral interference", "Periodicity"))
+  )
 
   ppm_res <- readRDS(file.path(dir, "1-ppm", "output", "1.rds"))
   stm_res <- ppm_res["stm_pc_chord", , ]
@@ -67,9 +75,11 @@ test_that("regression tests", {
 
   capture.output({
     hvr::compute_model_matrix(dir)
-    res <- hvr::viewpoint_regression(dir, poly_degree = 1)
+    res <- hvr::viewpoint_regression(dir)
   })
 
   expect_true(!is.null(res$moments))
   expect_true(!is.null(res$poly_coefs))
+
+  plot_marginals(res)
 })

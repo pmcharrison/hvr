@@ -1,18 +1,17 @@
 #' @export
 viewpoint_regression <- function(
   parent_dir,
-  poly_degree = 3L,
   max_iter = 500,
   perm_int = TRUE,
   perm_int_seed = 1,
   perm_int_reps = 25,
+  viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   model_matrix_dir = file.path(parent_dir, "2-model-matrix"),
   output_dir = file.path(parent_dir, "3-viewpoint-regression")
 ) {
+  viewpoint_labels <- readRDS(file.path(viewpoint_dir, "about.rds"))$viewpoint_labels
   viewpoints <- readRDS(file.path(model_matrix_dir, "about.rds"))$viewpoints
-
-  checkmate::qassert(poly_degree, "X1[1,)")
-  poly_degree <- as.integer(poly_degree)
+  poly_degree <- readRDS(file.path(model_matrix_dir, "about.rds"))$poly_degree
 
   message("Loading data...")
   predictors <- get_regression_predictors(model_matrix_dir)
@@ -26,7 +25,8 @@ viewpoint_regression <- function(
 
   res <- conduct_regression(observation_matrix, continuation_matrices, legal,
                             corpus, predictors, poly_degree, poly_coefs, moments,
-                            max_iter, perm_int, perm_int_seed, perm_int_reps)
+                            max_iter, perm_int, perm_int_seed, perm_int_reps,
+                            viewpoint_labels)
 
   R.utils::mkdirs(output_dir)
   write_regression_about(output_dir, poly_degree,
@@ -51,6 +51,20 @@ write_regression_about <- function(output_dir, poly_degree,
 }
 
 #' @export
+get_marginals <- function(x) {
+  UseMethod("get_marginals")
+}
+
+#' @export
+get_marginals.viewpoint_regression <- function(x) {
+  viewpoints <- list_viewpoints(x, discrete = FALSE)
+  purrr::map_dfr(viewpoints, function(v) {
+    get_marginal(x, v) %>%
+      tibble::add_column(viewpoint = v, .before = 1)
+  })
+}
+
+#' @export
 get_marginal <- function(x, viewpoint) {
   UseMethod("get_marginal")
 }
@@ -72,7 +86,7 @@ get_marginal.viewpoint_regression <- function(x, viewpoint) {
                length.out = 1000)
   poly_coef <- x$poly_coefs[[viewpoint]]
   degree <- poly_coef$alpha %>% length()
-  poly_x <- poly(x_seq, degree = degree, coefs = poly_coef)[, seq_len(x$poly_degree)]
+  poly_x <- poly(x_seq, degree = degree, coefs = poly_coef)[, seq_len(x$poly_degree), drop = FALSE]
   par <- x$predictors %>%
     dplyr::filter(.data$viewpoint == !!viewpoint) %>%
     dplyr::arrange(.data$poly_degree) %>%
@@ -114,8 +128,8 @@ plot_perm_int.viewpoint_regression <- function(
   dat <- x$perm_int
   names(dat) <- plyr::revalue(names(dat), labels, warn_missing = FALSE)
   if (order_by_label)
-    dat <- dat[order(names(dat))] else
-      dat <- dat[order(dat)]
+    dat <- dat[order(names(dat), decreasing = TRUE)] else
+      dat <- dat[order(dat, decreasing = TRUE)]
 
   if (gg) {
     tibble(viewpoint = factor(names(dat), levels = names(dat)),
@@ -128,11 +142,62 @@ plot_perm_int.viewpoint_regression <- function(
   } else {
     withr::with_par(list(mai = mai), {
       dat %>%
-        {.[order(names(dat), decreasing = TRUE)]} %>%
+        # rev() %>%
         barplot(horiz = TRUE, las = 1, xlab = axis_label, ...)
     })
   }
 }
+
+#' @export
+plot_marginals <- function(x,
+                           x_lab = "Feature value (z-score)",
+                           y_lab = "Odds ratio") {
+  UseMethod("plot_marginals")
+}
+
+#' @export
+plot_marginals.viewpoint_regression <- function(x,
+                                                x_lab = "Feature value (z-score)",
+                                                y_lab = "Odds ratio",
+                                                viewpoint_labels = x$viewpoint_labels,
+                                                ...) {
+  stopifnot(is.data.frame(viewpoint_labels),
+            all(names(viewpoint_labels) == c("viewpoint", "viewpoint_label")),
+            !anyDuplicated(viewpoint_labels$viewpoint),
+            !anyDuplicated(viewpoint_labels$viewpoint_label))
+
+  df <- get_marginals(x)
+
+  if (!all(unique(df$viewpoint) %in% viewpoint_labels$viewpoint))
+    stop("labels need to be provided for the following viewpoint(s): ",
+         paste(setdiff(unique(df$viewpoint), viewpoint_labels$viewpoint)))
+
+  stopifnot(all(df$viewpoint %in% viewpoint_labels$viewpoint))
+
+  df %>%
+    dplyr::left_join(viewpoint_labels, by = "viewpoint") %>%
+    ggplot2::ggplot(ggplot2::aes_string("feature_z", "effect")) +
+    ggplot2::geom_line() +
+    ggplot2::scale_x_continuous(x_lab) +
+    ggplot2::scale_y_continuous(y_lab) +
+    ggplot2::facet_wrap(~ viewpoint_label, ...)
+}
+
+#' @export
+list_viewpoints <- function(x, discrete = TRUE, continuous = TRUE) {
+  UseMethod("list_viewpoints")
+}
+
+#' @export
+list_viewpoints.viewpoint_regression <- function(x,
+                                                 discrete = TRUE,
+                                                 continuous = TRUE) {
+  pred <- x$predictors
+  if (!discrete) pred <- dplyr::filter(pred, !.data$discrete)
+  if (!continuous) pred <- dplyr::filter(pred, .data$discrete)
+  pred$viewpoint %>% unique()
+}
+
 
 #' @export
 plot_marginal <- function(x,
@@ -216,7 +281,8 @@ plot_marginal.viewpoint_regression <- function(
 
 conduct_regression <- function(observation_matrix, continuation_matrices, legal,
                                corpus, predictors, poly_degree, poly_coefs, moments,
-                               max_iter, perm_int, perm_int_seed, perm_int_reps) {
+                               max_iter, perm_int, perm_int_seed, perm_int_reps,
+                               viewpoint_labels) {
 
   message("Fitting conditional logit model...")
 
@@ -247,7 +313,8 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
               poly_coefs = poly_coefs,
               moments = moments,
               cost = x$value,
-              perm_int = permutation_importance
+              perm_int = permutation_importance,
+              viewpoint_labels = viewpoint_labels
   )
   class(res) <- c("viewpoint_regression", "list")
   res

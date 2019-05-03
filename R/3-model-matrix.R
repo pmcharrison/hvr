@@ -9,7 +9,7 @@ compute_model_matrix <- function(
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
-  viewpoints = list_viewpoints(viewpoint_dir),
+  viewpoints = read_viewpoints(viewpoint_dir),
   test_seq = list_test_seq(ppm_dir),
   allow_repeats = FALSE
 ) {
@@ -243,7 +243,7 @@ get_model_matrix_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly
     dplyr::filter(.data$viewpoint %in% viewpoints)
 }
 
-list_viewpoints <- function(viewpoint_dir) {
+read_viewpoints <- function(viewpoint_dir) {
   about <- readRDS(file.path(viewpoint_dir, "about.rds"))
   c(about$discrete %>% purrr::map_chr("name"),
     about$continuous) %>% sort()
