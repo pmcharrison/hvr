@@ -78,6 +78,8 @@ test_that("regression tests", {
     res <- hvr::viewpoint_regression(dir)
   })
 
+  moments <- readRDS(file.path(dir, "2-model-matrix", "moments.RDS"))
+
   expect_true(!is.null(res$moments))
   expect_true(!is.null(res$poly_coefs))
 

@@ -108,10 +108,25 @@ get_marginals <- function(x) {
 #' @export
 get_marginals.viewpoint_regression <- function(x) {
   viewpoints <- list_viewpoints(x, discrete = FALSE)
-  purrr::map_dfr(viewpoints, function(v) {
+  tmp <- purrr::map(viewpoints, function(v) {
     get_marginal(x, v) %>%
       tibble::add_column(viewpoint = v, .before = 1)
   })
+  marginals <- dplyr::bind_rows(tmp)
+  moments <- c("observed", "all_legal") %>% {purrr::set_names(., .)} %>%
+    purrr::map(
+      ~ purrr::map2_dfr(viewpoints, tmp, function(v, w) {
+        m <- attr(w, "moments")[[.]]
+        tibble(viewpoint = v,
+               mean = m$mean,
+               sd = m$sd,
+               quantile_05 = m$quantiles["5%"],
+               quantile_95 = m$quantiles["95%"],
+               min = m$range[1],
+               max = m$range[2])
+      }))
+  list(marginals = marginals,
+       moments = moments)
 }
 
 #' @export
@@ -122,32 +137,34 @@ get_marginal <- function(x, viewpoint) {
 #' @export
 get_marginal.viewpoint_regression <- function(x, viewpoint) {
   checkmate::qassert(viewpoint, "S1")
-  continuous_viewpoints <- x$predictors %>%
-    dplyr::filter(!.data$discrete) %>%
-    dplyr::pull(.data$viewpoint) %>%
-    unique()
-  if (!viewpoint %in% continuous_viewpoints)
+  if (!viewpoint %in% list_viewpoints(x, discrete = FALSE))
     stop("can only plot marginals for continuous viewpoints")
 
-  moments <- x$moments %>% dplyr::filter(.data$viewpoint == !!viewpoint)
-  z_seq <- seq(from = -4, to = 4, length.out = 1000)
-  x_seq <- seq(from = moments$mean - 4 * moments$sd,
-               to = moments$mean + 4 * moments$sd,
-               length.out = 1000)
+  all_legal_range <- x$moments$all_legal[[viewpoint]]$range
+
+  seq_range <- seq(from = 0, to = 1, length.out = 1000)
+  seq_viewpoint <- seq(from = all_legal_range[1],
+                       to = all_legal_range[2],
+                       length.out = 1000)
   poly_coef <- x$poly_coefs[[viewpoint]]
-  degree <- poly_coef$alpha %>% length()
-  poly_x <- poly(x_seq, degree = degree, coefs = poly_coef)[, seq_len(x$poly_degree), drop = FALSE]
+  poly_degree <- poly_coef$alpha %>% length()
+  seq_polynomial <- poly(seq_viewpoint,
+                         degree = poly_degree,
+                         coefs = poly_coef)[, seq_len(x$poly_degree), drop = FALSE]
   par <- x$predictors %>%
     dplyr::filter(.data$viewpoint == !!viewpoint) %>%
     dplyr::arrange(.data$poly_degree) %>%
     dplyr::pull(.data$label) %>%
     {x$par[.]}
 
-  y <- poly_x %*% matrix(par, ncol = 1)
+  seq_effect <- as.numeric(seq_polynomial %*% matrix(par, ncol = 1))
 
-  tibble(feature_raw = x_seq,
-         feature_z = z_seq,
-         effect = y)
+  res <- tibble(feature_range = seq_range,
+                feature_raw = seq_viewpoint,
+                effect = seq_effect)
+  attr(res, "moments") <- list(observed = x$moments$observed[[viewpoint]],
+                               all_legal = x$moments$all_legal[[viewpoint]])
+  res
 }
 
 #' @export
@@ -200,33 +217,59 @@ plot_perm_int.viewpoint_regression <- function(
 
 #' @export
 plot_marginals <- function(x,
-                           x_lab = "Feature value (z-score)",
-                           y_lab = "Odds ratio") {
+                           x_lab = "Feature value (relative to legal range)",
+                           y_lab = "Odds ratio",
+                           fill = "blue",
+                           alpha = 0.25,
+                           ...) {
   UseMethod("plot_marginals")
 }
 
 #' @export
 plot_marginals.viewpoint_regression <- function(x,
-                                                x_lab = "Feature value (z-score)",
+                                                x_lab = "Feature value (relative to legal range)",
                                                 y_lab = "Odds ratio",
                                                 viewpoint_labels = x$viewpoint_labels,
+                                                fill = "blue",
+                                                alpha = 0.25,
                                                 ...) {
   stopifnot(is.data.frame(viewpoint_labels),
             all(names(viewpoint_labels) == c("viewpoint", "viewpoint_label")),
             !anyDuplicated(viewpoint_labels$viewpoint),
             !anyDuplicated(viewpoint_labels$viewpoint_label))
 
-  df <- get_marginals(x)
+  tmp <- get_marginals(x)
+  marginals <- tmp$marginals
+  moments <- tmp$moments
 
-  if (!all(unique(df$viewpoint) %in% viewpoint_labels$viewpoint))
+  if (!all(unique(marginals$viewpoint) %in% viewpoint_labels$viewpoint))
     stop("labels need to be provided for the following viewpoint(s): ",
-         paste(setdiff(unique(df$viewpoint), viewpoint_labels$viewpoint)))
+         paste(setdiff(unique(marginals$viewpoint), viewpoint_labels$viewpoint)))
 
-  stopifnot(all(df$viewpoint %in% viewpoint_labels$viewpoint))
+  stopifnot(all(marginals$viewpoint %in% viewpoint_labels$viewpoint))
 
-  df %>%
+
+  df_quantiles <- dplyr::inner_join(moments$observed, moments$all_legal,
+                    by = "viewpoint",
+                    suffix = c("_obs", "_legal")) %>%
+    dplyr::select(c("viewpoint", "quantile_05_obs", "quantile_95_obs",
+                    "min_legal", "max_legal")) %>%
+    dplyr::mutate(range_legal = .data$max_legal - .data$min_legal,
+                  x_min = (.data$quantile_05_obs - .data$min_legal) / .data$range_legal,
+                  x_max = (.data$quantile_95_obs - .data$min_legal) / .data$range_legal) %>%
+    dplyr::left_join(viewpoint_labels, by = "viewpoint")
+
+  marginals %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint") %>%
-    ggplot2::ggplot(ggplot2::aes_string("feature_z", "effect")) +
+    ggplot2::ggplot(ggplot2::aes_string("feature_range", "effect")) +
+    ggplot2::geom_rect(data = df_quantiles,
+                       mapping = ggplot2::aes_string(xmin = "x_min",
+                                                     xmax = "x_max",
+                                                     ymin = -Inf,
+                                                     ymax = Inf),
+                       inherit.aes = FALSE,
+                       fill = fill,
+                       alpha = alpha) +
     ggplot2::geom_line() +
     ggplot2::scale_x_continuous(x_lab) +
     ggplot2::scale_y_continuous(y_lab) +
@@ -249,49 +292,47 @@ list_viewpoints.viewpoint_regression <- function(x,
 }
 
 
-#' @export
-plot_marginal <- function(x,
-                          viewpoint,
-                          gg = FALSE,
-                          title = viewpoint,
-                          x_lab = "Feature value (z-score)",
-                          y_lab = "Odds ratio",
-                          reverse_x = FALSE) {
-  UseMethod("plot_marginal")
-}
-
-#' @export
-plot_marginal.viewpoint_regression <- function(
-  x,
-  viewpoint,
-  gg = FALSE,
-  title = viewpoint,
-  x_lab = "Feature value (z-score)",
-  y_lab = "Log odds",
-  reverse_x = FALSE
-) {
-  dat <- get_marginal(x, viewpoint = viewpoint)
-  if (reverse_x) dat$effect <- dat$effect * - 1
-
-  if (gg) {
-    if (!requireNamespace("ggplot2", quietly = TRUE))
-      stop("please install the ggplot2 package before using this function")
-    p <- ggplot2::ggplot(dat, ggplot2::aes_string("feature_z", "effect")) +
-      ggplot2::geom_line() +
-      ggplot2::scale_x_continuous(x_lab) +
-      ggplot2::scale_y_continuous(y_lab)
-    if (!is.null(title)) p <- p + ggplot2::ggtitle(title)
-    p
-
-  } else {
-    plot(dat$feature_z,
-         dat$effect,
-         type = "l",
-         xlab = x_lab,
-         ylab = y_lab,
-         main = viewpoint)
-  }
-}
+# plot_marginal <- function(x,
+#                           viewpoint,
+#                           gg = FALSE,
+#                           title = viewpoint,
+#                           x_lab = "Feature value (z-score)",
+#                           y_lab = "Odds ratio",
+#                           reverse_x = FALSE) {
+#   UseMethod("plot_marginal")
+# }
+#
+# plot_marginal.viewpoint_regression <- function(
+#   x,
+#   viewpoint,
+#   gg = FALSE,
+#   title = viewpoint,
+#   x_lab = "Feature value (z-score)",
+#   y_lab = "Log odds",
+#   reverse_x = FALSE
+# ) {
+#   dat <- get_marginal(x, viewpoint = viewpoint)
+#   if (reverse_x) dat$effect <- dat$effect * - 1
+#
+#   if (gg) {
+#     if (!requireNamespace("ggplot2", quietly = TRUE))
+#       stop("please install the ggplot2 package before using this function")
+#     p <- ggplot2::ggplot(dat, ggplot2::aes_string("feature_z", "effect")) +
+#       ggplot2::geom_line() +
+#       ggplot2::scale_x_continuous(x_lab) +
+#       ggplot2::scale_y_continuous(y_lab)
+#     if (!is.null(title)) p <- p + ggplot2::ggtitle(title)
+#     p
+#
+#   } else {
+#     plot(dat$feature_z,
+#          dat$effect,
+#          type = "l",
+#          xlab = x_lab,
+#          ylab = y_lab,
+#          main = viewpoint)
+#   }
+# }
 
 # predict_symbols <- function(model_matrix, par, observed_only = TRUE) {
 #   model_matrix %>%
@@ -334,22 +375,35 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
                                max_iter, perm_int, perm_int_seed, perm_int_reps,
                                viewpoint_labels, allow_negative_weights) {
 
-  message("Fitting conditional logit model...")
-
   lower_bound <- if (allow_negative_weights)
     rep(-Inf, times = nrow(predictors)) else
       dplyr::if_else(predictors$discrete, 0, -Inf)
 
+  optim_method <- if (allow_negative_weights) "BFGS" else "L-BFGS-B"
+  # par_scale <- NULL
+  par_scale <- dplyr::if_else(predictors$discrete, 1, 1000)
+
+  i <- 0L
+  get_cost <- function(...) {
+    x <- cost(...)
+    i <<- i + 1L
+    message("i = ", i, ", cost = ", x)
+    x
+  }
+
+  message("Fitting conditional logit model with optimiser ",
+          optim_method, "...")
+
   x <- optim(par = rep(0, times = nrow(predictors)),
-             fn = cost,
+             fn = get_cost,
              gr = gradient,
-             method = "L-BFGS-B",
+             method = optim_method,
              lower = lower_bound,
              observation_matrix = observation_matrix,
              continuation_matrices = continuation_matrices,
              legal = legal,
-             control = list(trace = 6,
-                            maxit = max_iter))
+             control = list(maxit = max_iter,
+                            parscale = par_scale))
 
   permutation_importance <- if (perm_int)
     get_perm_int(weights = x$par,
@@ -369,7 +423,9 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
               moments = moments,
               cost = x$value,
               perm_int = permutation_importance,
-              viewpoint_labels = viewpoint_labels
+              viewpoint_labels = viewpoint_labels,
+              optim_method = optim_method,
+              par_scale = par_scale
   )
   class(res) <- c("viewpoint_regression", "list")
   res

@@ -27,7 +27,7 @@ compute_model_matrix <- function(
                            output_dir)
 
   tmp_1 <- get_continuous_model_matrix(corpus, predictors, viewpoint_dir,
-                                     poly_degree, na_val, allow_repeats)
+                                       poly_degree, na_val, allow_repeats)
 
   model_matrix <- get_model_matrix(
     tmp_1$continuous_model_matrix,
@@ -72,16 +72,23 @@ check_model_matrix <- function(model_matrix) {
 
 get_moments <- function(model_matrix, predictors) {
   message("Computing moments...")
-  obs <- model_matrix %>% dplyr::filter(.data$observed)
   viewpoints <- predictors %>%
     dplyr::filter(!.data$discrete) %>%
     dplyr::pull(.data$viewpoint) %>%
     unique() %>% sort()
-  purrr::map_dfr(viewpoints, function(v) {
-    tibble(viewpoint = v,
-           mean = mean(obs[[v]], na.rm = TRUE),
-           sd = sd(obs[[v]], na.rm = TRUE))
-  })
+  list(observed = model_matrix %>% dplyr::filter(.data$observed),
+       all_legal = model_matrix %>% dplyr::filter(.data$legal)) %>%
+    purrr::map(
+      function(df) {
+        purrr::map(viewpoints %>% purrr::set_names(viewpoints), function(v) {
+          list(
+            mean = mean(df[[v]], na.rm = TRUE),
+            sd = sd(df[[v]], na.rm = TRUE),
+            quantiles = quantile(df[[v]], c(0.05, 0.25, 0.5, 0.75, 0.95)),
+            range = range(df[[v]], na.rm = TRUE)
+          )
+        })
+      })
 }
 
 write_model_matrix_about <- function(max_sample, sample_seed, poly_degree, viewpoints,
