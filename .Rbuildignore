@@ -1,7 +1,7 @@
 ^data-raw$
 ^cache$
 ^LICENSE\.md$
-^hvpt\.Rproj$
+^hvr\.Rproj$
 ^\.Rproj\.user$
 ^scratch\.R$
 ^test-analysis$

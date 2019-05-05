@@ -75,7 +75,10 @@ get_discrete_weights.viewpoint_regression <- function(x) {
 }
 
 #' @export
-plot_discrete_weights <- function(x, x_lab = "Viewpoint", y_lab = "Weight") {
+plot_discrete_weights <- function(x,
+                                  x_lab = "Viewpoint",
+                                  y_lab = "Weight",
+                                  colours = c("#f47513", "#3fccff")) {
   UseMethod("plot_discrete_weights")
 }
 
@@ -91,9 +94,9 @@ plot_discrete_weights.viewpoint_regression <- function(
     dplyr::mutate(class = dplyr::recode(class,
                                         ltm = "Long-term",
                                         stm = "Short-term")) %>%
-    ggplot2::ggplot(ggplot2::aes(x = viewpoint_label,
-                                 y = par,
-                                 fill = class)) +
+    ggplot2::ggplot(ggplot2::aes_string(x = "viewpoint_label",
+                                        y = "par",
+                                        fill = "class")) +
     ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
     ggplot2::scale_fill_manual("Class", values = colours) +
     ggplot2::scale_x_discrete(x_lab) +
@@ -197,7 +200,11 @@ get_costs.viewpoint_regression <- function(x) {
 }
 
 #' @export
-plot_costs <- function(x) {
+plot_costs <- function(x,
+                       x_lab = "Cost (bits/chord)",
+                       y_lab = "Model",
+                       factor_lab = "Model type",
+                       factor_col = c("#E8E410", "#11A3FF", "#B50000")) {
   UseMethod("plot_costs")
 }
 
@@ -266,7 +273,7 @@ plot_perm_int.viewpoint_regression <- function(
     withr::with_par(list(mai = mai), {
       dat %>%
         # rev() %>%
-        barplot(horiz = TRUE, las = 1, xlab = axis_label, ...)
+        graphics::barplot(horiz = TRUE, las = 1, xlab = axis_label, ...)
     })
   }
 }
@@ -275,6 +282,7 @@ plot_perm_int.viewpoint_regression <- function(
 plot_marginals <- function(x,
                            x_lab = "Feature value (relative to legal range)",
                            y_lab = "Odds ratio",
+                           viewpoint_labels = x$viewpoint_labels,
                            fill = "blue",
                            alpha = 0.25,
                            ...) {

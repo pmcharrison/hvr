@@ -84,7 +84,7 @@ get_moments <- function(model_matrix, predictors) {
           list(
             mean = mean(df[[v]], na.rm = TRUE),
             sd = sd(df[[v]], na.rm = TRUE),
-            quantiles = quantile(df[[v]], c(0.05, 0.25, 0.5, 0.75, 0.95)),
+            quantiles = stats::quantile(df[[v]], c(0.05, 0.25, 0.5, 0.75, 0.95)),
             range = range(df[[v]], na.rm = TRUE)
           )
         })
