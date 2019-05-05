@@ -50,7 +50,7 @@ Remotes:
     pmcharrison/hrep,
     pmcharrison/hvrmap,
     pmcharrison/specdec,
-    pmcharison/ppm
+    pmcharrison/ppm
 Suggests: 
     testthat,
     ggplot2
