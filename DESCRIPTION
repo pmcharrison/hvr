@@ -28,7 +28,8 @@ Imports:
     purrr,
     readr,
     rlang,
-    methods
+    methods,
+    minVL
 Collate: 
     '1-compute-viewpoints.R'
     '2-compute-ppm-analyses.R'
@@ -50,7 +51,8 @@ Remotes:
     pmcharrison/hrep,
     pmcharrison/hvrmap,
     pmcharrison/specdec,
-    pmcharrison/ppm
+    pmcharrison/ppm,
+    pmcharrison/minVL
 Suggests: 
     testthat,
     ggplot2
