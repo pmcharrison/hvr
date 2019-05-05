@@ -250,8 +250,8 @@ plot_marginals.viewpoint_regression <- function(x,
 
 
   df_quantiles <- dplyr::inner_join(moments$observed, moments$all_legal,
-                    by = "viewpoint",
-                    suffix = c("_obs", "_legal")) %>%
+                                    by = "viewpoint",
+                                    suffix = c("_obs", "_legal")) %>%
     dplyr::select(c("viewpoint", "quantile_05_obs", "quantile_95_obs",
                     "min_legal", "max_legal")) %>%
     dplyr::mutate(range_legal = .data$max_legal - .data$min_legal,
@@ -422,13 +422,25 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
               poly_coefs = poly_coefs,
               moments = moments,
               cost = x$value,
+              cost_benchmarks = get_cost_benchmarks(predictors,
+                                                    observation_matrix),
               perm_int = permutation_importance,
               viewpoint_labels = viewpoint_labels,
               optim_method = optim_method,
-              par_scale = par_scale
+              par_scale = par_scale,
   )
   class(res) <- c("viewpoint_regression", "list")
   res
+}
+
+get_cost_benchmarks <- function(predictors,
+                                observation_matrix) {
+  pred <- predictors %>%
+    dplyr::filter(.data$discrete) %>%
+    dplyr::pull("label")
+  observation_matrix[, pred] %>%
+    colMeans() %>%
+    magrittr::multiply_by(-1)
 }
 
 get_perm_int <- function(weights,
