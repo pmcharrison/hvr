@@ -168,6 +168,62 @@ get_marginal.viewpoint_regression <- function(x, viewpoint) {
 }
 
 #' @export
+get_costs <- function(x) {
+  UseMethod("get_costs")
+}
+
+#' @export
+get_costs.viewpoint_regression <- function(x) {
+  tibble(
+    model = names(x$cost_benchmarks),
+    cost = as.numeric(x$cost_benchmarks)
+  ) %>%
+    dplyr::left_join(x$predictors %>% dplyr::select(c("class", "viewpoint", "label")),
+                     by = c(model = "label")) %>%
+    dplyr::left_join(x$viewpoint_labels, by = "viewpoint") %>%
+    dplyr::mutate(class = dplyr::recode(.data$class,
+                                        stm = "Short-term",
+                                        ltm = "Long-term")) %>%
+    dplyr::rename(label = .data$viewpoint_label) %>%
+    dplyr::bind_rows(
+      tibble(
+        model = "combined",
+        cost = x$cost,
+        class = "Combined",
+        viewpoint = as.character(NA),
+        label = "Combined"
+      )
+    )
+}
+
+#' @export
+plot_costs <- function(x) {
+  UseMethod("plot_costs")
+}
+
+#' @export
+plot_costs.viewpoint_regression <- function(x,
+                                            x_lab = "Cost (bits/chord)",
+                                            y_lab = "Model",
+                                            factor_lab = "Model type",
+                                            factor_col = c("#E8E410", "#11A3FF", "#B50000")) {
+  if (!requireNamespace("ggplot2", quietly = TRUE))
+    stop("please install the ggplot2 package before using this function")
+  get_costs(x) %>%
+    dplyr::mutate(label = factor(.data$label,
+                                 levels = c("Combined",
+                                            setdiff(unique(.data$label),
+                                                    "Combined") %>% sort(TRUE)))) %>%
+    ggplot2::ggplot(ggplot2::aes_string(x = "label", y = "cost", fill = "class")) +
+    ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
+    ggplot2::scale_x_discrete(y_lab) +
+    ggplot2::scale_y_continuous(x_lab) +
+    ggplot2::scale_fill_manual(factor_lab, values = factor_col) +
+    ggplot2::coord_flip() +
+    ggplot2::guides(fill = ggplot2::guide_legend(reverse = TRUE))
+}
+
+#' @export
 plot_perm_int <- function(
   x,
   gg = FALSE,
@@ -427,7 +483,7 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
               perm_int = permutation_importance,
               viewpoint_labels = viewpoint_labels,
               optim_method = optim_method,
-              par_scale = par_scale,
+              par_scale = par_scale
   )
   class(res) <- c("viewpoint_regression", "list")
   res

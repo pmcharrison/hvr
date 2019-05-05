@@ -85,4 +85,5 @@ test_that("regression tests", {
 
   plot_marginals(res)
   plot_discrete_weights(res)
+  plot_costs(res)
 })
