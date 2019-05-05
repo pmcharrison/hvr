@@ -3,3 +3,5 @@
 ^LICENSE\.md$
 ^hvpt\.Rproj$
 ^\.Rproj\.user$
+^scratch\.R$
+^test-analysis$
