@@ -78,7 +78,7 @@ get_discrete_weights.viewpoint_regression <- function(x) {
 plot_discrete_weights <- function(x,
                                   x_lab = "Viewpoint",
                                   y_lab = "Weight",
-                                  colours = c("#f47513", "#3fccff")) {
+                                  colours = c("#11A3FF", "#B50000")) {
   UseMethod("plot_discrete_weights")
 }
 
@@ -87,7 +87,7 @@ plot_discrete_weights.viewpoint_regression <- function(
   x,
   x_lab = "Viewpoint",
   y_lab = "Weight",
-  colours = c("#f47513", "#3fccff")
+  colours = c("#11A3FF", "#B50000")
 ) {
   if (!requireNamespace("ggplot2")) stop("ggplot2 must be installed first")
   get_discrete_weights(x) %>%
@@ -224,7 +224,7 @@ plot_costs.viewpoint_regression <- function(x,
     ggplot2::ggplot(ggplot2::aes_string(x = "label", y = "cost", fill = "class")) +
     ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
     ggplot2::scale_x_discrete(y_lab) +
-    ggplot2::scale_y_continuous(x_lab) +
+    ggplot2::scale_y_continuous(x_lab, limits = c(0, 15)) +
     ggplot2::scale_fill_manual(factor_lab, values = factor_col) +
     ggplot2::coord_flip() +
     ggplot2::guides(fill = ggplot2::guide_legend(reverse = TRUE))
