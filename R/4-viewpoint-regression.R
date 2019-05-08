@@ -468,10 +468,36 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
              legal = legal,
              control = list(maxit = max_iter,
                             parscale = par_scale))
+  new_regression_model(par = x$par, cost = x$value,
+                       corpus = corpus,
+                       observation_matrix = observation_matrix,
+                       continuation_matrices = continuation_matrices,
+                       legal = legal,
+                       predictors = predictors,
+                       perm_int = perm_int,
+                       perm_int_seed = perm_int_seed,
+                       perm_int_reps = perm_int_reps,
+                       poly_degree = poly_degree,
+                       poly_coefs = poly_coefs,
+                       moments = moments,
+                       viewpoint_labels = viewpoint_labels,
+                       optim_method = optim_method,
+                       par_scale = par_scale,
+                       lower_bound = lower_bound,
+                       optim_report = x)
 
+}
+
+#' @export
+new_regression_model <- function(par, cost, corpus, observation_matrix,
+                                 continuation_matrices, legal, predictors,
+                                 perm_int, perm_int_seed, perm_int_reps,
+                                 poly_degree, poly_coefs, moments,
+                                 viewpoint_labels, optim_method, par_scale,
+                                 lower_bound, optim_report) {
   permutation_importance <- if (perm_int)
-    get_perm_int(weights = x$par,
-                 benchmark_cost = x$value,
+    get_perm_int(weights = par,
+                 benchmark_cost = cost,
                  corpus = corpus,
                  observation_matrix = observation_matrix,
                  continuation_matrices = continuation_matrices,
@@ -481,17 +507,19 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
                  reps = perm_int_reps)
 
   res <- list(predictors = predictors,
-              par = x$par %>% magrittr::set_names(predictors$label),
+              par = par %>% magrittr::set_names(predictors$label),
               poly_degree = poly_degree,
               poly_coefs = poly_coefs,
               moments = moments,
-              cost = x$value,
+              cost = cost,
               cost_benchmarks = get_cost_benchmarks(predictors,
                                                     observation_matrix),
               perm_int = permutation_importance,
               viewpoint_labels = viewpoint_labels,
               optim_method = optim_method,
-              par_scale = par_scale
+              par_scale = par_scale,
+              lower_bound = lower_bound,
+              optim_report = optim_report
   )
   class(res) <- c("viewpoint_regression", "list")
   res
