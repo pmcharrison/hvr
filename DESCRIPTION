@@ -55,6 +55,7 @@ Remotes:
     pmcharrison/minVL
 Suggests: 
     testthat,
-    ggplot2
+    ggplot2,
+    numDeriv
 LinkingTo: 
     Rcpp
