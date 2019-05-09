@@ -100,7 +100,8 @@ plot_discrete_weights.viewpoint_regression <- function(
     ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
     ggplot2::scale_fill_manual("Class", values = colours) +
     ggplot2::scale_x_discrete(x_lab) +
-    ggplot2::scale_y_continuous(y_lab)
+    ggplot2::scale_y_continuous(y_lab) +
+    ggplot2::coord_flip()
 }
 
 #' @export
