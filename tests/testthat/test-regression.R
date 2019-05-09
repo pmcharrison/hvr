@@ -83,7 +83,10 @@ test_that("regression tests", {
   expect_true(!is.null(res$moments))
   expect_true(!is.null(res$poly_coefs))
 
-  plot_marginals(res)
+  plot_marginals(res, res, c("Model 1", "Model 2"))
+  plot_marginals(res, res, c("Model 1", "Model 2"), only_observed = TRUE)
   plot_discrete_weights(res)
   plot_costs(res)
+
+  plot_discrete_weights_compared(res, res, "x label", "y label")
 })

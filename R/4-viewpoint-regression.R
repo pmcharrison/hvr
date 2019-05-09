@@ -47,6 +47,11 @@ viewpoint_regression <- function(
   invisible(res)
 }
 
+#' @export
+is_viewpoint_regression <- function(x) {
+  is(x, "viewpoint_regression")
+}
+
 write_regression_about <- function(output_dir, poly_degree,
                                    perm_int, perm_int_seed, perm_int_reps,
                                    viewpoints) {
@@ -97,11 +102,68 @@ plot_discrete_weights.viewpoint_regression <- function(
     ggplot2::ggplot(ggplot2::aes_string(x = "viewpoint_label",
                                         y = "par",
                                         fill = "class")) +
-    ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
+    ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.9),
+                      colour = "black", width = 0.9) +
     ggplot2::scale_fill_manual("Class", values = colours) +
     ggplot2::scale_x_discrete(x_lab) +
     ggplot2::scale_y_continuous(y_lab) +
     ggplot2::coord_flip()
+}
+
+#' @export
+plot_discrete_weights_compared <- function(x,
+                                           y,
+                                           x_lab,
+                                           y_lab,
+                                           point_size = 3,
+                                           colours = c("#11A3FF", "#B50000")) {
+  UseMethod("plot_discrete_weights_compared")
+}
+
+#' @export
+plot_discrete_weights_compared.viewpoint_regression <- function(x,
+                                                                y,
+                                                                x_lab,
+                                                                y_lab,
+                                                                point_size = 3,
+                                                                colours = c("#11A3FF", "#B50000")) {
+  stopifnot(is_viewpoint_regression(y))
+  if (!requireNamespace("ggplot2")) stop("ggplot2 must be installed first")
+
+  df_y <- get_discrete_weights(y) %>%
+    dplyr::mutate(class = dplyr::recode(class,
+                                        ltm = "Long-term",
+                                        stm = "Short-term"))
+
+  df_scatter <- dplyr::inner_join(
+    get_discrete_weights(x) %>% dplyr::select(c("label", "par")),
+    get_discrete_weights(y) %>% dplyr::select(c("label", "par", "class")),
+    by = "label", suffix = c("_x", "_y")
+  ) %>%
+    dplyr::mutate(class = dplyr::recode(class,
+                                        ltm = "Long-term",
+                                        stm = "Short-term"))
+
+  list(
+    bar = plot_discrete_weights(x, colours = colours) +
+      ggplot2::scale_colour_manual(values = colours) +
+      ggplot2::geom_point(data = df_y,
+                          mapping = ggplot2::aes_string(x = "viewpoint_label",
+                                                        y = "par",
+                                                        colour = "class"),
+                          position = ggplot2::position_dodge(width = 0.9),
+                          fill = "white", shape = 21, size = point_size,
+                          show.legend = FALSE),
+    scatter = df_scatter %>%
+      ggplot2::ggplot(ggplot2::aes_string("par_x", "par_y", colour = "class")) +
+      ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+      ggplot2::geom_point() +
+      ggplot2::scale_colour_manual("Class", values = colours) +
+      ggplot2::scale_x_continuous(x_lab) +
+      ggplot2::scale_y_continuous(y_lab),
+    data = list(scatter = df_scatter)
+  )
+
 }
 
 #' @export
@@ -280,8 +342,10 @@ plot_perm_int.viewpoint_regression <- function(
 }
 
 #' @export
-plot_marginals <- function(x,
-                           x_lab = "Feature value (relative to legal range)",
+plot_marginals <- function(model_1,
+                           model_2 = NULL,
+                           only_observed = FALSE,
+                           x_lab = "Relative feature value",
                            y_lab = "Odds ratio",
                            viewpoint_labels = x$viewpoint_labels,
                            fill = "blue",
@@ -291,10 +355,13 @@ plot_marginals <- function(x,
 }
 
 #' @export
-plot_marginals.viewpoint_regression <- function(x,
-                                                x_lab = "Feature value (relative to legal range)",
+plot_marginals.viewpoint_regression <- function(model_1,
+                                                model_2 = NULL,
+                                                model_labels = NULL,
+                                                only_observed = FALSE,
+                                                x_lab = "Relative feature value",
                                                 y_lab = "Odds ratio",
-                                                viewpoint_labels = x$viewpoint_labels,
+                                                viewpoint_labels = model_1$viewpoint_labels,
                                                 fill = "blue",
                                                 alpha = 0.25,
                                                 ...) {
@@ -302,10 +369,23 @@ plot_marginals.viewpoint_regression <- function(x,
             all(names(viewpoint_labels) == c("viewpoint", "viewpoint_label")),
             !anyDuplicated(viewpoint_labels$viewpoint),
             !anyDuplicated(viewpoint_labels$viewpoint_label))
+  if (!is.null(model_2)) {
+    stopifnot(is_viewpoint_regression(model_2))
+    checkmate::qassert(model_labels, "S2")
+  }
 
-  tmp <- get_marginals(x)
-  marginals <- tmp$marginals
+  tmp <- get_marginals(model_1)
   moments <- tmp$moments
+
+  marginals <- if (is.null(model_2)) {
+    tmp$marginals
+  } else {
+    dplyr::bind_rows(
+      tmp$marginals %>% dplyr::mutate(model = model_labels[1]),
+      get_marginals(model_2)$marginals %>% dplyr::mutate(model = model_labels[2])
+    ) %>%
+      dplyr::mutate(model = factor(model, levels = model_labels))
+  }
 
   if (!all(unique(marginals$viewpoint) %in% viewpoint_labels$viewpoint))
     stop("labels need to be provided for the following viewpoint(s): ",
@@ -324,9 +404,33 @@ plot_marginals.viewpoint_regression <- function(x,
                   x_max = (.data$quantile_95_obs - .data$min_legal) / .data$range_legal) %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
-  marginals %>%
+
+
+  if (only_observed) {
+    marginals <- marginals %>%
+      dplyr::left_join(df_quantiles %>%
+                         dplyr::select(c("viewpoint",
+                                         "quantile_05_obs",
+                                         "quantile_95_obs")),
+                       by = "viewpoint") %>%
+      dplyr::mutate(feature_obs_range = (.data$feature_raw - .data$quantile_05_obs) /
+                      (.data$quantile_95_obs - .data$quantile_05_obs)) %>%
+      dplyr::filter(.data$feature_obs_range >= 0 &
+                      .data$feature_obs_range <= 1)
+  }
+
+  x_feature <- if (only_observed) "feature_obs_range" else "feature_range"
+
+  aes <- if (is.null(model_2))
+    ggplot2::aes_string(x = x_feature, y = "effect") else
+      ggplot2::aes_string(x = x_feature, y = "effect", linetype = "model")
+
+  p <- marginals %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint") %>%
-    ggplot2::ggplot(ggplot2::aes_string("feature_range", "effect")) +
+    ggplot2::ggplot(aes)
+
+  if (!only_observed)
+    p <- p +
     ggplot2::geom_rect(data = df_quantiles,
                        mapping = ggplot2::aes_string(xmin = "x_min",
                                                      xmax = "x_max",
@@ -334,11 +438,19 @@ plot_marginals.viewpoint_regression <- function(x,
                                                      ymax = Inf),
                        inherit.aes = FALSE,
                        fill = fill,
-                       alpha = alpha) +
+                       alpha = alpha)
+
+  p <- p +
     ggplot2::geom_line() +
     ggplot2::scale_x_continuous(x_lab) +
     ggplot2::scale_y_continuous(y_lab) +
     ggplot2::facet_wrap(~ viewpoint_label, ...)
+
+  if (!is.null(model_2))
+    p <- p + ggplot2::scale_linetype_manual("Model",
+                                            values = c("solid", "dotted"))
+
+  p
 }
 
 #' @export
