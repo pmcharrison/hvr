@@ -206,30 +206,41 @@ get_marginal.viewpoint_regression <- function(x, viewpoint) {
   if (!viewpoint %in% list_viewpoints(x, discrete = FALSE))
     stop("can only plot marginals for continuous viewpoints")
 
-  all_legal_range <- x$moments$all_legal[[viewpoint]]$range
+  ranges_raw <- c("observed", "all_legal") %>%
+    purrr::set_names(., .) %>%
+    purrr::map(~ x$moments[[.]][[viewpoint]]$quantiles[c("5%", "95%")])
 
-  seq_range <- seq(from = 0, to = 1, length.out = 1000)
-  seq_viewpoint <- seq(from = all_legal_range[1],
-                       to = all_legal_range[2],
-                       length.out = 1000)
+  feature_range_raw <- c(pmin(ranges_raw$observed[1],
+                              ranges_raw$all_legal[1]),
+                         pmax(ranges_raw$observed[2],
+                              ranges_raw$all_legal[2]))
+  feature_seq_raw <- seq(from = feature_range_raw[1],
+                         to = feature_range_raw[2],
+                         length.out = 1000)
+  feature_seq_rel <- seq(from = 0, to = 1, length.out = 1000)
+
   poly_coef <- x$poly_coefs[[viewpoint]]
   poly_degree <- poly_coef$alpha %>% length()
-  seq_polynomial <- poly(seq_viewpoint,
-                         degree = poly_degree,
-                         coefs = poly_coef)[, seq_len(x$poly_degree), drop = FALSE]
+  feature_poly_seq <- poly(feature_seq_raw,
+                           degree = poly_degree,
+                           coefs = poly_coef)[, seq_len(x$poly_degree), drop = FALSE]
   par <- x$predictors %>%
     dplyr::filter(.data$viewpoint == !!viewpoint) %>%
     dplyr::arrange(.data$poly_degree) %>%
     dplyr::pull(.data$label) %>%
     {x$par[.]}
 
-  seq_effect <- as.numeric(seq_polynomial %*% matrix(par, ncol = 1))
+  feature_effect_seq <- as.numeric(feature_poly_seq %*% matrix(par, ncol = 1))
 
-  res <- tibble(feature_range = seq_range,
-                feature_raw = seq_viewpoint,
-                effect = seq_effect)
+  res <- tibble(feature_rel = feature_seq_rel,
+                feature_raw = feature_seq_raw,
+                feature_obs = feature_seq_raw >= ranges_raw$observed[1] &
+                  feature_seq_raw <= ranges_raw$observed[2],
+                effect = feature_effect_seq)
+
   attr(res, "moments") <- list(observed = x$moments$observed[[viewpoint]],
                                all_legal = x$moments$all_legal[[viewpoint]])
+
   res
 }
 
@@ -344,7 +355,6 @@ plot_perm_int.viewpoint_regression <- function(
 #' @export
 plot_marginals <- function(model_1,
                            model_2 = NULL,
-                           only_observed = FALSE,
                            x_lab = "Relative feature value",
                            y_lab = "Effect",
                            viewpoint_labels = x$viewpoint_labels,
@@ -358,7 +368,6 @@ plot_marginals <- function(model_1,
 plot_marginals.viewpoint_regression <- function(model_1,
                                                 model_2 = NULL,
                                                 model_labels = NULL,
-                                                only_observed = FALSE,
                                                 x_lab = "Relative feature value",
                                                 y_lab = "Effect",
                                                 viewpoint_labels = model_1$viewpoint_labels,
@@ -393,54 +402,42 @@ plot_marginals.viewpoint_regression <- function(model_1,
 
   stopifnot(all(marginals$viewpoint %in% viewpoint_labels$viewpoint))
 
-
-  df_quantiles <- dplyr::inner_join(moments$observed, moments$all_legal,
-                                    by = "viewpoint",
-                                    suffix = c("_obs", "_legal")) %>%
-    dplyr::select(c("viewpoint", "quantile_05_obs", "quantile_95_obs",
-                    "min_legal", "max_legal")) %>%
-    dplyr::mutate(range_legal = .data$max_legal - .data$min_legal,
-                  x_min = (.data$quantile_05_obs - .data$min_legal) / .data$range_legal,
-                  x_max = (.data$quantile_95_obs - .data$min_legal) / .data$range_legal) %>%
+  obs_ranges_rel <- marginals %>%
+    dplyr::group_by(.data$viewpoint) %>%
+    dplyr::summarise(min = min(feature_rel[feature_obs]),
+                     max = max(feature_rel[feature_obs])) %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
-
-
-  if (only_observed) {
-    marginals <- marginals %>%
-      dplyr::left_join(df_quantiles %>%
-                         dplyr::select(c("viewpoint",
-                                         "quantile_05_obs",
-                                         "quantile_95_obs")),
-                       by = "viewpoint") %>%
-      dplyr::mutate(feature_obs_range = (.data$feature_raw - .data$quantile_05_obs) /
-                      (.data$quantile_95_obs - .data$quantile_05_obs)) %>%
-      dplyr::filter(.data$feature_obs_range >= 0 &
-                      .data$feature_obs_range <= 1)
-  }
-
-  x_feature <- if (only_observed) "feature_obs_range" else "feature_range"
+  # df_quantiles <- dplyr::inner_join(moments$observed, moments$all_legal,
+  #                                   by = "viewpoint",
+  #                                   suffix = c("_obs", "_legal")) %>%
+  #   dplyr::select(c("viewpoint",
+  #                   "quantile_05_obs", "quantile_95_obs",
+  #                   "quantile_05_legal", "quantile_95_legal")) %>%
+  #   dplyr::mutate(
+  #     x_min_raw = pmin(.data$quantile_05_obs, .data$quantile_05_legal),
+  #     x_max_raw = pmax(.data$quantile_95_obs, .data$quantile_95_legal),
+  #     x_range_raw = .data$x_max_raw - .data$x_min_raw,
+  #     x_obs_min_rel = (.data$quantile_05_obs - .data$x_min_raw) / .data$x_range_raw,
+  #     x_obs_max_rel = (.data$quantile_95_obs - .data$x_min_raw) / .data$x_range_raw,
+  #   ) %>%
+  #   dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
   aes <- if (is.null(model_2))
-    ggplot2::aes_string(x = x_feature, y = "effect") else
-      ggplot2::aes_string(x = x_feature, y = "effect", linetype = "model")
+    ggplot2::aes_string(x = "feature_rel", y = "effect") else
+      ggplot2::aes_string(x = "feature_rel", y = "effect", linetype = "model")
 
   p <- marginals %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint") %>%
-    ggplot2::ggplot(aes)
-
-  if (!only_observed)
-    p <- p +
-    ggplot2::geom_rect(data = df_quantiles,
-                       mapping = ggplot2::aes_string(xmin = "x_min",
-                                                     xmax = "x_max",
+    ggplot2::ggplot(aes) +
+    ggplot2::geom_rect(data = obs_ranges_rel,
+                       mapping = ggplot2::aes_string(xmin = "min",
+                                                     xmax = "max",
                                                      ymin = -Inf,
                                                      ymax = Inf),
                        inherit.aes = FALSE,
                        fill = fill,
-                       alpha = alpha)
-
-  p <- p +
+                       alpha = alpha) +
     ggplot2::geom_line() +
     ggplot2::scale_x_continuous(x_lab) +
     ggplot2::scale_y_continuous(y_lab) +
