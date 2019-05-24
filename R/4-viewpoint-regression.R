@@ -355,7 +355,7 @@ plot_perm_int.viewpoint_regression <- function(
 #' @export
 plot_marginals <- function(model_1,
                            model_2 = NULL,
-                           x_lab = "Relative feature value",
+                           x_lab = "Feature value",
                            y_lab = "Effect",
                            viewpoint_labels = x$viewpoint_labels,
                            fill = "blue",
@@ -368,11 +368,12 @@ plot_marginals <- function(model_1,
 plot_marginals.viewpoint_regression <- function(model_1,
                                                 model_2 = NULL,
                                                 model_labels = NULL,
-                                                x_lab = "Relative feature value",
+                                                x_lab = "Feature value",
                                                 y_lab = "Effect",
                                                 viewpoint_labels = model_1$viewpoint_labels,
                                                 fill = "blue",
                                                 alpha = 0.25,
+                                                scales = "free_x",
                                                 ...) {
   stopifnot(is.data.frame(viewpoint_labels),
             all(names(viewpoint_labels) == c("viewpoint", "viewpoint_label")),
@@ -402,10 +403,10 @@ plot_marginals.viewpoint_regression <- function(model_1,
 
   stopifnot(all(marginals$viewpoint %in% viewpoint_labels$viewpoint))
 
-  obs_ranges_rel <- marginals %>%
+  obs_ranges_raw <- marginals %>%
     dplyr::group_by(.data$viewpoint) %>%
-    dplyr::summarise(min = min(feature_rel[feature_obs]),
-                     max = max(feature_rel[feature_obs])) %>%
+    dplyr::summarise(min = min(feature_raw[feature_obs]),
+                     max = max(feature_raw[feature_obs])) %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
   # df_quantiles <- dplyr::inner_join(moments$observed, moments$all_legal,
@@ -424,13 +425,13 @@ plot_marginals.viewpoint_regression <- function(model_1,
   #   dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
   aes <- if (is.null(model_2))
-    ggplot2::aes_string(x = "feature_rel", y = "effect") else
-      ggplot2::aes_string(x = "feature_rel", y = "effect", linetype = "model")
+    ggplot2::aes_string(x = "feature_raw", y = "effect") else
+      ggplot2::aes_string(x = "feature_raw", y = "effect", linetype = "model")
 
   p <- marginals %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint") %>%
     ggplot2::ggplot(aes) +
-    ggplot2::geom_rect(data = obs_ranges_rel,
+    ggplot2::geom_rect(data = obs_ranges_raw,
                        mapping = ggplot2::aes_string(xmin = "min",
                                                      xmax = "max",
                                                      ymin = -Inf,
@@ -441,7 +442,7 @@ plot_marginals.viewpoint_regression <- function(model_1,
     ggplot2::geom_line() +
     ggplot2::scale_x_continuous(x_lab) +
     ggplot2::scale_y_continuous(y_lab) +
-    ggplot2::facet_wrap(~ viewpoint_label, ...)
+    ggplot2::facet_wrap(~ viewpoint_label, scales = scales, ...)
 
   if (!is.null(model_2))
     p <- p + ggplot2::scale_linetype_manual("Model",
