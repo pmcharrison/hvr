@@ -360,6 +360,7 @@ plot_marginals <- function(model_1,
                            viewpoint_labels = x$viewpoint_labels,
                            fill = "blue",
                            alpha = 0.25,
+                           scales = "free",
                            ...) {
   UseMethod("plot_marginals")
 }
@@ -373,7 +374,7 @@ plot_marginals.viewpoint_regression <- function(model_1,
                                                 viewpoint_labels = model_1$viewpoint_labels,
                                                 fill = "blue",
                                                 alpha = 0.25,
-                                                scales = "free_x",
+                                                scales = "free",
                                                 ...) {
   stopifnot(is.data.frame(viewpoint_labels),
             all(names(viewpoint_labels) == c("viewpoint", "viewpoint_label")),
