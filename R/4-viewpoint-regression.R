@@ -385,6 +385,11 @@ plot_marginals.viewpoint_regression <- function(model_1,
     checkmate::qassert(model_labels, "S2")
   }
 
+  if (all(model_1$predictors$discrete)) {
+    warning("no continuous marginals available to plot")
+    return(ggplot2::ggplot())
+  }
+
   tmp <- get_marginals(model_1)
   moments <- tmp$moments
 
