@@ -94,7 +94,7 @@ new_static_viewpoint(
 
 new_static_viewpoint(
   "hutch_78_roughness",
-  "Spectral interference",
+  "Interference",
   alphabet_size = NA,
   discrete = FALSE,
   mapping = hvrmap::map_pc_chord$hutch_78_roughness
@@ -102,7 +102,7 @@ new_static_viewpoint(
 
 new_static_viewpoint(
   "har_18_harmonicity",
-  "Periodicity",
+  "Periodicity/harmonicity",
   alphabet_size = NA,
   discrete = FALSE,
   mapping = hvrmap::map_pc_chord$har_18_harmonicity
