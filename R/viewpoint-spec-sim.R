@@ -2,11 +2,11 @@
 NULL
 
 #' @export
-new_spec_dist_viewpoint <- function(half_life) {
+new_spec_sim_viewpoint <- function(half_life) {
   checkmate::qassert(half_life, "N1(0,)")
   new_viewpoint(
-    name = paste0("spec_dist_", half_life),
-    label = paste0("Spectral distance (HL = ", half_life, ")"),
+    name = paste0("spec_sim_", half_life),
+    label = paste0("Spectral similarity (HL = ", half_life, ")"),
     alphabet_size = NA,
     discrete = FALSE,
     f_obs = function(chords, chord_ids, ...) {
@@ -17,8 +17,8 @@ new_spec_dist_viewpoint <- function(half_life) {
       res <- rep(as.numeric(NA), length = length(chord_ids))
       if (length(chord_ids) > 1L) {
         for (i in seq(from = 2L, to = length(chord_ids))) {
-          res[i] <- 1 - hrep::cosine_similarity(decay_spectra[[i - 1L]],
-                                                spectra[[i]])
+          res[i] <- hrep::cosine_similarity(decay_spectra[[i - 1L]],
+                                            spectra[[i]])
         }
       }
       res
@@ -33,13 +33,13 @@ new_spec_dist_viewpoint <- function(half_life) {
                                                offset = TRUE)
       if (length(chord_ids) > 1) {
         if (verbose) {
-          message("Computing spectral distances (half life = ", half_life, ")...")
+          message("Computing spectral similarities (half life = ", half_life, ")...")
           pb <- utils::txtProgressBar(
             min = 1, max = length(chord_ids), style = 3)
         }
         for (i in seq(from = 2, to = length(chord_ids))) {
-          res[i, ] <- 1 - cosine_similarities(decay_spectra[[i - 1L]],
-                                              hvrmap::map_pc_chord$milne_pc_spectrum)
+          res[i, ] <- cosine_similarities(decay_spectra[[i - 1L]],
+                                          hvrmap::map_pc_chord$milne_pc_spectrum)
           if (verbose) utils::setTxtProgressBar(pb, i)
         }
         if (verbose) close(pb)
@@ -56,4 +56,4 @@ get_spectra <- function(chord_ids) {
   )
 }
 
-new_spec_dist_viewpoint(half_life = 3) %>% register_viewpoint()
+new_spec_sim_viewpoint(half_life = 3) %>% register_viewpoint()
