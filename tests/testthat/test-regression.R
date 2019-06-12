@@ -24,7 +24,7 @@ test_that("regression tests", {
   expect_equal(
     vp_about$viewpoint_labels,
     tibble(viewpoint = c("pc_chord", "hutch_78_roughness", "har_18_harmonicity"),
-           viewpoint_label = c("PC chord", "Spectral interference", "Periodicity"))
+           viewpoint_label = c("PC chord", "Interference", "Periodicity/harmonicity"))
   )
 
   ppm_res <- readRDS(file.path(dir, "1-ppm", "output", "1.rds"))
