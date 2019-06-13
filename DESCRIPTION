@@ -44,7 +44,7 @@ Collate:
     'viewpoint-pc-chord-rel-prev-bass.R'
     'viewpoint-pc-set-rel-prev-bass.R'
     'viewpoint-root-int.R'
-    'viewpoint-spec-dist.R'
+    'viewpoint-spec-sim.R'
     'viewpoint-vl-dist.R'
     'viewpoints-static.R'
 Remotes:
