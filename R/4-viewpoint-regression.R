@@ -585,7 +585,22 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
              legal = legal,
              control = list(maxit = max_iter,
                             parscale = par_scale))
-  new_regression_model(par = x$par, cost = x$value,
+  par <- x$par
+  num_events <- length(continuation_matrices)
+  num_par <- length(par)
+  cost <- x$value
+  log_2_likelihood <- - cost * num_events
+  log_e_likelihood <- log_2_likelihood * log(2)
+  aic <- 2 * num_par - 2 * log_e_likelihood
+  bic <- log(num_events) * num_par - 2 * log_e_likelihood
+
+  new_regression_model(par = par,
+                       cost = cost,
+                       num_events = num_events,
+                       log_2_likelihood = log_2_likelihood,
+                       log_e_likelihood = log_e_likelihood,
+                       aic = aic,
+                       bic = bic,
                        corpus = corpus,
                        observation_matrix = observation_matrix,
                        continuation_matrices = continuation_matrices,
@@ -606,7 +621,10 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
 }
 
 #' @export
-new_regression_model <- function(par, cost, corpus, observation_matrix,
+new_regression_model <- function(par, cost, num_events,
+                                 log_2_likelihood, log_e_likelihood,
+                                 aic, bic,
+                                 corpus, observation_matrix,
                                  continuation_matrices, legal, predictors,
                                  perm_int, perm_int_seed, perm_int_reps,
                                  poly_degree, poly_coefs, moments,
@@ -624,6 +642,7 @@ new_regression_model <- function(par, cost, corpus, observation_matrix,
                  reps = perm_int_reps)
 
   res <- list(predictors = predictors,
+              num_events = num_events,
               par = par %>% magrittr::set_names(predictors$label),
               poly_degree = poly_degree,
               poly_coefs = poly_coefs,
@@ -631,6 +650,10 @@ new_regression_model <- function(par, cost, corpus, observation_matrix,
               cost = cost,
               cost_benchmarks = get_cost_benchmarks(predictors,
                                                     observation_matrix),
+              log_2_likelihood = log_2_likelihood,
+              log_e_likelihood = log_e_likelihood,
+              aic = aic,
+              bic = bic,
               perm_int = permutation_importance,
               viewpoint_labels = viewpoint_labels,
               optim_method = optim_method,

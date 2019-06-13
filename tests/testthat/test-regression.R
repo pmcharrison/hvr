@@ -78,6 +78,16 @@ test_that("regression tests", {
     res <- hvr::viewpoint_regression(dir)
   })
 
+  expect_equal(2 ^ res$log_2_likelihood,
+               exp(res$log_e_likelihood))
+  expect_equal(res$num_events, 5)
+  expect_equal(res$log_2_likelihood,
+               - 5 * res$cost)
+  expect_equal(res$aic,
+               2 * length(res$par) - 2 * res$log_e_likelihood)
+  expect_equal(res$bic,
+               log(res$num_events) * length(res$par) - 2 * res$log_e_likelihood)
+
   moments <- readRDS(file.path(dir, "2-model-matrix", "moments.RDS"))
 
   expect_true(!is.null(res$moments))
