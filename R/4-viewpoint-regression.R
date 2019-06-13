@@ -686,7 +686,7 @@ get_perm_int <- function(weights,
                          reps) {
   message("Computing permutation feature importances...")
   viewpoints <- predictors$viewpoint %>% unique() %>% sort()
-  plyr::laply(viewpoints, function(v) {
+  plyr::llply(viewpoints, function(v) {
     withr::with_seed(seed, {
       plyr::laply(seq_len(reps), function(...) {
         tmp <-  permute_matrices(observation_matrix,
@@ -696,9 +696,16 @@ get_perm_int <- function(weights,
                                  v)
         cost(weights, tmp$new_obs_matrix, tmp$new_con_matrices, legal) - benchmark_cost
       })
-    }) %>% mean()
-  }, .progress = "text") %>%
-    magrittr::set_names(viewpoints)
+    }) %>% (function(x) {
+      tibble::tibble(viewpoint = v,
+                     mean = mean(x),
+                     n = length(x),
+                     sd = sd(x),
+                     ci_95_low =  as.numeric(quantile(x, 0.025)),
+                     ci_95_high = as.numeric(quantile(x, 0.975)))
+    })
+  }, .progress = "time") %>%
+    dplyr::bind_rows()
 }
 
 permute_matrices <- function(observation_matrix,
