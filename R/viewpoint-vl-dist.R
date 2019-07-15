@@ -15,8 +15,8 @@ min_vl_dists <- function(...) {
 }
 
 new_viewpoint(
-  name = "vl_dist",
-  label = "Voice-leading distance",
+  name = "pi_dist",
+  label = "Pitch distance",
   alphabet_size = NA,
   discrete = FALSE,
   f_obs = function(chord_ids, chords, ...) {
