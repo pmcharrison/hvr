@@ -77,8 +77,8 @@ new_static_viewpoint(
 ) %>% register_viewpoint()
 
 new_static_viewpoint(
-  "pc_chord_type",
-  "PC chord type",
+  "pc_set_rel_bass", # a.k.a. pc_chord_type
+  "PC set rel. bass",
   hrep::alphabet_size("pc_chord_type"),
   discrete = TRUE,
   mapping = hvrmap::map_pc_chord$pc_chord_type_id
