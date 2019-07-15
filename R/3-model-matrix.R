@@ -6,6 +6,7 @@ compute_model_matrix <- function(
   poly_degree = 4L,
   na_val = 0,
   filter_corpus = NULL,
+  ltm = TRUE,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
@@ -18,9 +19,10 @@ compute_model_matrix <- function(
   max_sample <- as.integer(max_sample)
   checkmate::qassert(poly_degree, "X1[1,)")
   checkmate::qassert(allow_repeats, "B1")
+  checkmate::qassert(ltm, "B1")
   stopifnot(is.null(filter_corpus) || is.function(filter_corpus))
   corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed, filter_corpus)
-  predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree)
+  predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree, ltm)
 
   R.utils::mkdirs(output_dir)
   write_model_matrix_about(max_sample, sample_seed, poly_degree, viewpoints,
@@ -232,11 +234,12 @@ seq_discrete_model_matrix <- function(events, predictors, ppm_dir, na_val) {
   })
 }
 
-get_model_matrix_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly_degree) {
+get_model_matrix_predictors <- function(viewpoints, viewpoint_dir, ppm_dir, poly_degree, ltm) {
   discrete <- readr::read_csv(file.path(ppm_dir, "models.csv"), col_types = readr::cols()) %>%
     tibble::add_column(poly_degree = as.integer(NA), .after = 3L) %>%
     tibble::add_column(discrete = TRUE, .before = 1L) %>%
-    dplyr::select(- .data$id)
+    dplyr::select(- .data$id) %>%
+    dplyr::filter(!!ltm | .data$class == "stm")
 
   continuous <- readRDS(file.path(viewpoint_dir, "about.rds"))$continuous_viewpoints %>%
     purrr::map_dfr(~ tibble(discrete = FALSE,
