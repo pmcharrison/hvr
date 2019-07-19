@@ -65,6 +65,13 @@ write_regression_about <- function(output_dir, poly_degree,
     saveRDS(file.path(output_dir, "about.rds"))
 }
 
+add_data <- function(x, data) {
+  if (is.null(attr(x, "data")))
+    attr(x, "data") <- data else
+      warning("cannot use 'data' slot as it is already taken")
+  x
+}
+
 #' @export
 get_discrete_weights <- function(x) {
   UseMethod("get_discrete_weights")
@@ -83,7 +90,8 @@ get_discrete_weights.viewpoint_regression <- function(x) {
 plot_discrete_weights <- function(x,
                                   x_lab = "Viewpoint",
                                   y_lab = "Weight",
-                                  colours = c("#11A3FF", "#B50000")) {
+                                  colours = c("#B50000", "#11A3FF"),
+                                  labels = x$viewpoint_labels) {
   UseMethod("plot_discrete_weights")
 }
 
@@ -92,22 +100,36 @@ plot_discrete_weights.viewpoint_regression <- function(
   x,
   x_lab = "Viewpoint",
   y_lab = "Weight",
-  colours = c("#11A3FF", "#B50000")
+  colours = c("#B50000", "#11A3FF"),
+  labels = x$viewpoint_labels
 ) {
   if (!requireNamespace("ggplot2")) stop("ggplot2 must be installed first")
-  get_discrete_weights(x) %>%
-    dplyr::mutate(class = dplyr::recode(class,
-                                        ltm = "Long-term",
-                                        stm = "Short-term")) %>%
-    ggplot2::ggplot(ggplot2::aes_string(x = "viewpoint_label",
-                                        y = "par",
-                                        fill = "class")) +
-    ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.9),
-                      colour = "black", width = 0.9) +
-    ggplot2::scale_fill_manual("Class", values = colours) +
+
+  data <- get_discrete_weights(x) %>%
+    dplyr::mutate(
+      class = dplyr::recode_factor(.data$class,
+                                   stm = "Short-term",
+                                   ltm = "Long-term"),
+      viewpoint_label = plyr::revalue(
+        .data$viewpoint,
+        labels$viewpoint_label %>% stats::setNames(labels$viewpoint),
+        warn_missing = FALSE
+      ),
+      viewpoint_label = factor(.data$viewpoint_label,
+                               levels = sort(unique(.data$viewpoint_label),
+                                             decreasing = TRUE))
+    )
+
+  p <- ggplot2::ggplot(data, ggplot2::aes_string(x = "viewpoint_label",
+                                                 y = "par",
+                                                 fill = "class")) +
+    ggplot2::geom_col(colour = "black", width = 0.9) +
+    ggplot2::scale_fill_manual(NULL, values = colours) +
     ggplot2::scale_x_discrete(x_lab) +
     ggplot2::scale_y_continuous(y_lab) +
     ggplot2::coord_flip()
+
+  add_data(p, data)
 }
 
 #' @export
@@ -307,12 +329,10 @@ plot_costs.viewpoint_regression <- function(x,
 #' @export
 plot_perm_int <- function(
   x,
-  gg = FALSE,
-  labels = character(),
-  # axis_1 = "Viewpoint",
-  axis_label = "Model reliance (bits)",
-  mai = c(1, 2.5, 0, 0.5),
+  labels = x$viewpoint_labels,
+  axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
+  error_bars = FALSE,
   ...
 ) {
   UseMethod("plot_perm_int")
@@ -321,35 +341,36 @@ plot_perm_int <- function(
 #' @export
 plot_perm_int.viewpoint_regression <- function(
   x,
-  gg = FALSE,
-  labels = character(),
-  # axis_1 = "Viewpoint",
-  axis_label = "Model reliance (bits/chord)",
-  mai = c(1, 2.5, 0, 0.5),
+  labels = x$viewpoint_labels,
+  axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
+  error_bars = FALSE,
   ...
 ) {
-  dat <- x$perm_int
-  names(dat) <- plyr::revalue(names(dat), labels, warn_missing = FALSE)
-  if (order_by_label)
-    dat <- dat[order(names(dat), decreasing = TRUE)] else
-      dat <- dat[order(dat, decreasing = TRUE)]
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 must be installed first")
 
-  if (gg) {
-    tibble(viewpoint = factor(names(dat), levels = names(dat)),
-           perm_int = as.numeric(dat)) %>%
-      ggplot2::ggplot(ggplot2::aes_string("viewpoint", "perm_int")) +
-      ggplot2::geom_bar(colour = "black", fill = "#6ba3ff", stat = "identity") +
-      ggplot2::scale_x_discrete(NULL) +
-      ggplot2::scale_y_continuous(axis_label) +
-      ggplot2::coord_flip()
-  } else {
-    withr::with_par(list(mai = mai), {
-      dat %>%
-        # rev() %>%
-        graphics::barplot(horiz = TRUE, las = 1, xlab = axis_label, ...)
-    })
-  }
+  data <- x$perm_int %>%
+    dplyr::mutate(viewpoint = plyr::revalue(
+      .data$viewpoint,
+      labels$viewpoint_label %>% stats::setNames(labels$viewpoint),
+      warn_missing = FALSE
+    )) %>%
+    dplyr::arrange(if (order_by_label) viewpoint else mean) %>%
+    dplyr::mutate(viewpoint = factor(.data$viewpoint, levels = rev(.data$viewpoint)))
+
+  p <- data %>%
+    ggplot2::ggplot(ggplot2::aes_string(x = "viewpoint",
+                                        y = "mean",
+                                        ymin = "ci_95_low",
+                                        ymax = "ci_95_high")) +
+    ggplot2::geom_bar(colour = "black", fill = "#6ba3ff", stat = "identity") +
+    ggplot2::scale_x_discrete(NULL) +
+    ggplot2::scale_y_continuous(axis_label) +
+    ggplot2::coord_flip()
+
+  if (error_bars) p <- p + ggplot2::geom_errorbar(width = 0.25)
+
+  add_data(p, data)
 }
 
 #' @export
@@ -409,33 +430,19 @@ plot_marginals.viewpoint_regression <- function(model_1,
 
   stopifnot(all(marginals$viewpoint %in% viewpoint_labels$viewpoint))
 
+  marginals <- dplyr::left_join(marginals, viewpoint_labels, by = "viewpoint")
+
   obs_ranges_raw <- marginals %>%
     dplyr::group_by(.data$viewpoint) %>%
     dplyr::summarise(min = min(feature_raw[feature_obs]),
                      max = max(feature_raw[feature_obs])) %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
-  # df_quantiles <- dplyr::inner_join(moments$observed, moments$all_legal,
-  #                                   by = "viewpoint",
-  #                                   suffix = c("_obs", "_legal")) %>%
-  #   dplyr::select(c("viewpoint",
-  #                   "quantile_05_obs", "quantile_95_obs",
-  #                   "quantile_05_legal", "quantile_95_legal")) %>%
-  #   dplyr::mutate(
-  #     x_min_raw = pmin(.data$quantile_05_obs, .data$quantile_05_legal),
-  #     x_max_raw = pmax(.data$quantile_95_obs, .data$quantile_95_legal),
-  #     x_range_raw = .data$x_max_raw - .data$x_min_raw,
-  #     x_obs_min_rel = (.data$quantile_05_obs - .data$x_min_raw) / .data$x_range_raw,
-  #     x_obs_max_rel = (.data$quantile_95_obs - .data$x_min_raw) / .data$x_range_raw,
-  #   ) %>%
-  #   dplyr::left_join(viewpoint_labels, by = "viewpoint")
-
   aes <- if (is.null(model_2))
     ggplot2::aes_string(x = "feature_raw", y = "effect") else
       ggplot2::aes_string(x = "feature_raw", y = "effect", linetype = "model")
 
   p <- marginals %>%
-    dplyr::left_join(viewpoint_labels, by = "viewpoint") %>%
     ggplot2::ggplot(aes) +
     ggplot2::geom_rect(data = obs_ranges_raw,
                        mapping = ggplot2::aes_string(xmin = "min",
@@ -454,7 +461,8 @@ plot_marginals.viewpoint_regression <- function(model_1,
     p <- p + ggplot2::scale_linetype_manual("Model",
                                             values = c("solid", "dotted"))
 
-  p
+  add_data(p, marginals)
+
 }
 
 #' @export
@@ -585,22 +593,9 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
              legal = legal,
              control = list(maxit = max_iter,
                             parscale = par_scale))
-  par <- x$par
-  num_events <- length(continuation_matrices)
-  num_par <- length(par)
-  cost <- x$value
-  log_2_likelihood <- - cost * num_events
-  log_e_likelihood <- log_2_likelihood * log(2)
-  aic <- 2 * num_par - 2 * log_e_likelihood
-  bic <- log(num_events) * num_par - 2 * log_e_likelihood
 
-  new_regression_model(par = par,
-                       cost = cost,
-                       num_events = num_events,
-                       log_2_likelihood = log_2_likelihood,
-                       log_e_likelihood = log_e_likelihood,
-                       aic = aic,
-                       bic = bic,
+  new_regression_model(par = x$par,
+                       cost = x$value,
                        corpus = corpus,
                        observation_matrix = observation_matrix,
                        continuation_matrices = continuation_matrices,
@@ -621,15 +616,21 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
 }
 
 #' @export
-new_regression_model <- function(par, cost, num_events,
-                                 log_2_likelihood, log_e_likelihood,
-                                 aic, bic,
+new_regression_model <- function(par, cost,
                                  corpus, observation_matrix,
                                  continuation_matrices, legal, predictors,
                                  perm_int, perm_int_seed, perm_int_reps,
                                  poly_degree, poly_coefs, moments,
                                  viewpoint_labels, optim_method, par_scale,
                                  lower_bound, optim_report) {
+
+  num_events <- length(continuation_matrices)
+  num_par <- length(par)
+  log_2_likelihood <- - cost * num_events
+  log_e_likelihood <- log_2_likelihood * log(2)
+  aic <- 2 * num_par - 2 * log_e_likelihood
+  bic <- log(num_events) * num_par - 2 * log_e_likelihood
+
   permutation_importance <- if (perm_int)
     get_perm_int(weights = par,
                  benchmark_cost = cost,

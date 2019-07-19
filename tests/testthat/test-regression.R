@@ -75,7 +75,7 @@ test_that("regression tests", {
 
   capture.output({
     hvr::compute_model_matrix(dir)
-    res <- hvr::viewpoint_regression(dir)
+    res <- hvr::viewpoint_regression(dir, max_iter = 50)
   })
 
   expect_equal(2 ^ res$log_2_likelihood,
