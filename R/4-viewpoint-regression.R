@@ -671,7 +671,7 @@ get_cost_benchmarks <- function(predictors,
   pred <- predictors %>%
     dplyr::filter(.data$discrete) %>%
     dplyr::pull("label")
-  observation_matrix[, pred] %>%
+  observation_matrix[, pred, drop = FALSE] %>%
     colMeans() %>%
     magrittr::multiply_by(-1)
 }
