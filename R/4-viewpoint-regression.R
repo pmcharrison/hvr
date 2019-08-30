@@ -333,6 +333,7 @@ plot_perm_int <- function(
   axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
   error_bars = FALSE,
+  fill = "#6ba3ff",
   ...
 ) {
   UseMethod("plot_perm_int")
@@ -345,6 +346,7 @@ plot_perm_int.viewpoint_regression <- function(
   axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
   error_bars = FALSE,
+  fill = "#6ba3ff",
   ...
 ) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 must be installed first")
@@ -363,7 +365,7 @@ plot_perm_int.viewpoint_regression <- function(
                                         y = "mean",
                                         ymin = "ci_95_low",
                                         ymax = "ci_95_high")) +
-    ggplot2::geom_bar(colour = "black", fill = "#6ba3ff", stat = "identity") +
+    ggplot2::geom_bar(colour = "black", fill = fill, stat = "identity") +
     ggplot2::scale_x_discrete(NULL) +
     ggplot2::scale_y_continuous(axis_label) +
     ggplot2::coord_flip()
