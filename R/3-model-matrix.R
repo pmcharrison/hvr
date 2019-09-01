@@ -27,8 +27,6 @@
 #' @param poly_degree
 #' (Integer scalar)
 #' Degree of the polynomials to compute for the continuous features.
-#' This is an upper bound on the actual polynomial degree
-#' used in the subsequent regression function.
 #'
 #' @param na_val
 #' (Numeric scalar)
@@ -81,7 +79,9 @@
 #'
 #' @param allow_repeats
 #' (Logical scalar)
-#' Whether repeated chords are theoretically permitted in the corpus.
+#' Whether repeated chords are theoretically permitted in the
+#' chord sequences. It is recommended to remove such repetitions
+#' before modelling.
 #'
 #' @return
 #' The primary output is written to disk in the \code{dir} directory.
@@ -108,7 +108,7 @@ compute_model_matrix <- function(
   seq_test = list_seq_test(ppm_dir),
   allow_repeats = FALSE
 ) {
-  checkmate::qassert(max_sample, "X1[50,]")
+  checkmate::qassert(max_sample, "N1[50,]")
   checkmate::qassert(na_val, "N1(,)")
   checkmate::qassert(poly_degree, "X1[1,)")
   checkmate::qassert(allow_repeats, "B1")
@@ -179,7 +179,9 @@ get_moments <- function(model_matrix, predictors) {
           list(
             mean = mean(df[[v]], na.rm = TRUE),
             sd = sd(df[[v]], na.rm = TRUE),
-            quantiles = stats::quantile(df[[v]], c(0.05, 0.25, 0.5, 0.75, 0.95)),
+            quantiles = stats::quantile(df[[v]],
+                                        c(0.05, 0.25, 0.5, 0.75, 0.95),
+                                        na.rm = TRUE),
             range = range(df[[v]], na.rm = TRUE)
           )
         })

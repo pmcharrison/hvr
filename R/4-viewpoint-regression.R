@@ -53,7 +53,7 @@
 #'
 #' @param output_dir
 #' (Character scalar)
-#' The output directory for the viewpoint regression results.
+#' The output directory for the new results.
 #' Will be created if it doesn't exist already.
 #'
 #' @return

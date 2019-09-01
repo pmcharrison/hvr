@@ -27,9 +27,7 @@ Lower values of \code{max_sample} prompt random downsampling.}
 Random seed to make the downsampling reproducible.}
 
 \item{poly_degree}{(Integer scalar)
-Degree of the polynomials to compute for the continuous features.
-This is an upper bound on the actual polynomial degree
-used in the subsequent regression function.}
+Degree of the polynomials to compute for the continuous features.}
 
 \item{na_val}{(Numeric scalar)
 Value to use to code for NA in the model matrix.
@@ -67,7 +65,9 @@ Defaults to the \code{seq_test} argument that was provided to
 \code{\link{compute_viewpoints}}.}
 
 \item{allow_repeats}{(Logical scalar)
-Whether repeated chords are theoretically permitted in the corpus.}
+Whether repeated chords are theoretically permitted in the
+chord sequences. It is recommended to remove such repetitions
+before modelling.}
 
 \item{compute_ppm_analyses}{(Character scalar)
 The directory for the already-generated

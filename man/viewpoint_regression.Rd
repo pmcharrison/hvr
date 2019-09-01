@@ -47,7 +47,7 @@ The default should be correct if the user used the
 default \code{dir} argument in \code{\link{compute_model_matrix}}.}
 
 \item{output_dir}{(Character scalar)
-The output directory for the viewpoint regression results.
+The output directory for the new results.
 Will be created if it doesn't exist already.}
 }
 \value{

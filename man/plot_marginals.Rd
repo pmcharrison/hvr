@@ -35,6 +35,8 @@ of observed feature values.}
 \item{alpha}{(Numeric scalar)
 Alpha value for the shaded region.}
 
+\item{scales}{Passed to \code{\link[ggplot2]{facet_wrap}}.}
+
 \item{...}{Further arguments to pass to \code{\link[ggplot2]{facet_wrap}}.}
 }
 \description{
