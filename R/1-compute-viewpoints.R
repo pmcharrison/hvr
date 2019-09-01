@@ -92,6 +92,7 @@ compute_training_viewpoints <- function(viewpoints,
   # magrittr::set_names(., .) %>%
   plyr::llply(corpus,
               get_viewpoint_matrices,
+              include_continuous_viewpoints = FALSE,
               viewpoints = viewpoints,
               continuations = FALSE,
               .progress = if (verbose) "text" else "none") %>%
@@ -111,6 +112,7 @@ compute_test_only_viewpoints <- function(seq_test,
     seq_id <- seq_test[i]
     get_viewpoint_matrices(
       chord_ids = corpus[[seq_id]],
+      include_continuous_viewpoints = TRUE,
       viewpoints = viewpoints,
       continuations = TRUE,
       verbose = verbose

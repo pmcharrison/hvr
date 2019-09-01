@@ -1,6 +1,7 @@
 #' @include viewpoints.R
 
 get_viewpoint_matrices <- function(chord_ids,
+                                   include_continuous_viewpoints,
                                    viewpoints = hvr::hvr_viewpoints,
                                    continuations = FALSE,
                                    verbose = TRUE) {
@@ -17,11 +18,12 @@ get_viewpoint_matrices <- function(chord_ids,
                                     discrete = TRUE,
                                     continuations = continuations,
                                     verbose = verbose),
-    continuous = get_viewpoint_matrix(chord_ids,
-                                      continuous_viewpoints,
-                                      discrete = FALSE,
-                                      continuations = continuations,
-                                      verbose = verbose)
+    continuous = if (include_continuous_viewpoints)
+      get_viewpoint_matrix(chord_ids,
+                           continuous_viewpoints,
+                           discrete = FALSE,
+                           continuations = continuations,
+                           verbose = verbose)
   )
 }
 
