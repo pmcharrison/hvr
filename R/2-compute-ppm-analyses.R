@@ -1,6 +1,75 @@
 #' Compute PPM analyses
 #'
-#' This function computes PPM analyses.
+#' This function models discrete viewpoints using the
+#' Prediction by Partial Match (PPM) algorithm.
+#'
+#' \code{\link{compute_viewpoints}} should be run first.
+#' By default, only sequences in
+#' \code{seq_test} (see \code{\link{compute_viewpoints}})
+#' are modelled using PPM.
+#' The default PPM implementation corresponds to that described in
+#' \insertCite{Pearce2005;textual}{hvr}.
+#'
+#' @param parent_dir
+#' (Character scalar)
+#' The parent directory for the output files, shared with functions such as
+#' \code{\link{compute_viewpoints}} and \code{\link{compute_model_matrix}}.
+#' Ignored if all other directory arguments are manually specified.
+#'
+#' @param viewpoint_dir
+#' (Character scalar)
+#' The directory for the already-generated
+#' output files from \code{\link{compute_viewpoints}}.
+#' The default should be correct if the user used the
+#' default \code{dir} argument in \code{\link{compute_viewpoints}}.
+#'
+#' @param output_dir
+#' (Character scalar)
+#' The output directory for the PPM analyses.
+#' Will be created if it doesn't exist already.
+#'
+#' @param stm_opt
+#' Options list for the short-term PPM models, as created by the function
+#' \code{\link{stm_options}}.
+#'
+#' @param ltm_opt
+#' Options list for the long-term PPM models, as created by the function
+#' \code{\link{ltm_options}}.
+#'
+#' @param seq_test_folds
+#' List of cross-validation folds for the test sequences.
+#' Each fold is represented as an integer vector,
+#' with the integers indexing the sequences within the corpus
+#' (see \code{\link{compute_viewpoints}}).
+#' The algorithm iterates over each fold, predicting the sequences
+#' within that fold, and training the model using the combination of
+#' a) the sequences from the other folds in \code{seq_test_folds} and
+#' b) the sequences identified in \code{seq_pretrain}.
+#' By default, there is just one fold corresponding to the \code{seq_test}
+#' argument of \code{\link{compute_viewpoints}}.
+#'
+#' @param seq_pretrain
+#' (Integer vector)
+#' Sequences used to pretrain the model (in addition to any cross-validation training
+#' specified by \code{seq_test_folds}), specified as integer indices
+#' of the corpus.
+#' Defaults to the complement of \code{seq_test} as specified in
+#' \code{\link{compute_viewpoints}}.
+#'
+#' @param viewpoints
+#' List of discrete viewpoints to analyse,
+#' in the format produced by the \code{$discrete_viewpoints} slot
+#' of the \code{about.rds} file produced by \code{\link{compute_viewpoints}}.
+#' Defaults to the full set of discrete viewpoints as specified
+#' in \code{\link{compute_viewpoints}}.
+#'
+#' @return
+#' The primary output is written to disk in the \code{dir} directory.
+#' The output matrices provide raw probabilities for each event in the
+#' chord alphabet.
+#'
+#' @md
+#'
 #' @export
 compute_ppm_analyses <- function(
   parent_dir,
@@ -40,7 +109,7 @@ ppm_fold <- function(i, folds, seq_pretrain, model_spec,
   message("Computing PPM analyses for fold ", i, " out of ", length(folds), "...")
 
   training <- c(get_training(folds, i), seq_pretrain) %>% sort()
-  test_seq <- get_test(folds, i)
+  seq_test <- get_test(folds, i)
 
   message("  Pretraining long-term models...")
   ltm_models <- if (ltm_opt$enabled) {
@@ -53,10 +122,10 @@ ppm_fold <- function(i, folds, seq_pretrain, model_spec,
                   .progress = "text")
   }
 
-  purrr::map2(test_seq,
-              seq_along(test_seq),
+  purrr::map2(seq_test,
+              seq_along(seq_test),
               ppm_test,
-              num_seq = length(test_seq),
+              num_seq = length(seq_test),
               model_spec = model_spec,
               viewpoints = viewpoints,
               viewpoint_dir = viewpoint_dir,

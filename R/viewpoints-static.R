@@ -1,12 +1,45 @@
 #' @include viewpoints.R
 NULL
 
+#' New static viewpoint
+#'
+#' A helper function for defining viewpoints that do not depend
+#' on their preceding context.
+#'
+#' @param name
+#' (Character scalar)
+#' Name for the viewpoint (e.g. \code{pc_chord}).
+#'
+#' @param label
+#' (Character scalar)
+#' Label for the viewpoint (e.g. "Pitch-class chord").
+#'
+#' @param alphabet_size
+#' For a discrete viewpoint, the number of symbols in the viewpoint's alphabet;
+#' for a continuous viewpoint, \code{NA}.
+#'
+#' @param discrete
+#' (Logical scalar)
+#' Whether the viewpoint is discrete as opposed to continuous.
+#'
+#' @param mapping
+#' An integer vector of length 24,576
+#' (the alphabet size of \code{\link[hrep]{pc_chord}}),
+#' where the ith element corresponds to the viewpoint value for chord i,
+#' with chord i being encoded using the \code{\link[hrep]{pc_chord}}
+#' encoding from the \code{hrep} package.
+#'
+#' @seealso
+#' \code{\link{new_viewpoint}} for defining viewpoints that do depend on
+#' their contexts.
+#'
+#' @export
 new_static_viewpoint <- function(name, label, alphabet_size, discrete, mapping) {
   alphabet_size <- as.integer(alphabet_size)
   checkmate::qassert(alphabet_size, "x1")
   if (discrete) {
-    checkmate::qassert(mapping, "X[1,)")
     mapping <- as.integer(mapping)
+    checkmate::qassert(mapping, "X[1,)")
     stopifnot(alphabet_size == max(mapping))
     stopifnot(length(mapping) == hrep::alphabet_size("pc_chord"))
   }

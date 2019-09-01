@@ -1,7 +1,101 @@
+#' Compute model matrix
+#'
+#' Computes the model matrix, which compiles together expectedness values
+#' from the PPM analyses as well as polynomial expansions of the
+#' continuous features.
+#'
+#' The following routines should have been run already:
+#' 1. \code{\link{compute_viewpoints}}
+#' 2. \code{\link{compute_ppm_analyses}}
+#'
+#' @param parent_dir
+#' (Character scalar)
+#' The parent directory for the output files, shared with functions such as
+#' \code{\link{compute_viewpoints}} and \code{\link{compute_ppm_analyses}}.
+#' Ignored if all other directory arguments are manually specified.
+#'
+#' @param max_sample
+#' (Numeric scalar)
+#' Maximum number of events to sample for the model matrix,
+#' defaults to \code{Inf} (no downsampling).
+#' Lower values of \code{max_sample} prompt random downsampling.
+#'
+#' @param sample_seed
+#' (Integer scalar)
+#' Random seed to make the downsampling reproducible.
+#'
+#' @param poly_degree
+#' (Integer scalar)
+#' Degree of the polynomials to compute for the continuous features.
+#' This is an upper bound on the actual polynomial degree
+#' used in the subsequent regression function.
+#'
+#' @param na_val
+#' (Numeric scalar)
+#' Value to use to code for NA in the model matrix.
+#' The statistical analyses are mostly unaffected by this value.
+#'
+#' @param filter_corpus
+#' (NULL or a function)
+#' An optional function to apply to the corpus to determine which
+#' events should be retained in the model matrix.
+#' The function is applied to the corpus object saved as \code{corpus.rds}
+#' in \code{viewpoint_dir}. This corpus object takes the form of a
+#' \code{\link[tibble]{tibble}}; the function should return a
+#' row-subset of this \code{tibble}.
+#'
+#' @param ltm
+#' (Logical scalar, default = \code{TRUE})
+#' If \code{FALSE}, long-term (i.e. pretrained) PPM model outputs are
+#' excluded from the model matrix.
+#'
+#' @param viewpoint_dir
+#' (Character scalar)
+#' The directory for the already-generated
+#' output files from \code{\link{compute_viewpoints}}.
+#' The default should be correct if the user used the
+#' default \code{dir} argument in \code{\link{compute_viewpoints}}.
+#'
+#' @param compute_ppm_analyses
+#' (Character scalar)
+#' The directory for the already-generated
+#' output files from \code{\link{compute_ppm_analyses}}.
+#' The default should be correct if the user used the
+#' default \code{dir} argument in \code{\link{compute_ppm_analyses}}.
+#'
+#' @param output_dir
+#' (Character scalar)
+#' The output directory for the model matrix.
+#' Will be created if it doesn't exist already.
+#'
+#' @param viewpoints
+#' Character vector listing the viewpoints to be included in the model matrix.
+#' By default this list is read from \code{viewpoint_dir}.
+#'
+#' @param seq_test
+#' Integer vector identifying which sequences should be sampled from for
+#' constructing the model matrix, indexing into the \code{corpus}
+#' argument of \code{\link{compute_viewpoints}}.
+#' Defaults to the \code{seq_test} argument that was provided to
+#' \code{\link{compute_viewpoints}}.
+#'
+#' @param allow_repeats
+#' (Logical scalar)
+#' Whether repeated chords are theoretically permitted in the corpus.
+#'
+#' @return
+#' The primary output is written to disk in the \code{dir} directory.
+#' The model matrix provides metafeature values
+#' (i.e. expectedness values for discrete features
+#' and polynomial values for continuous features)
+#' over the entire chord alphabet at every location in \code{seq_test}.
+#'
+#' @md
+#'
 #' @export
 compute_model_matrix <- function(
   parent_dir,
-  max_sample = 1e4,
+  max_sample = Inf,
   sample_seed = 1,
   poly_degree = 4L,
   na_val = 0,
@@ -11,17 +105,16 @@ compute_model_matrix <- function(
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
   viewpoints = read_viewpoints(viewpoint_dir),
-  test_seq = list_test_seq(ppm_dir),
+  seq_test = list_seq_test(ppm_dir),
   allow_repeats = FALSE
 ) {
-  checkmate::qassert(max_sample, "X1[50,)")
+  checkmate::qassert(max_sample, "X1[50,]")
   checkmate::qassert(na_val, "N1(,)")
-  max_sample <- as.integer(max_sample)
   checkmate::qassert(poly_degree, "X1[1,)")
   checkmate::qassert(allow_repeats, "B1")
   checkmate::qassert(ltm, "B1")
   stopifnot(is.null(filter_corpus) || is.function(filter_corpus))
-  corpus <- get_model_matrix_corpus(viewpoint_dir, test_seq, max_sample, sample_seed, filter_corpus)
+  corpus <- get_model_matrix_corpus(viewpoint_dir, seq_test, max_sample, sample_seed, filter_corpus)
   predictors <- get_model_matrix_predictors(viewpoints, viewpoint_dir, ppm_dir, poly_degree, ltm)
 
   R.utils::mkdirs(output_dir)
@@ -105,7 +198,7 @@ write_model_matrix_about <- function(max_sample, sample_seed, poly_degree, viewp
 }
 
 
-list_test_seq <- function(ppm_dir) {
+list_seq_test <- function(ppm_dir) {
   readRDS(file.path(ppm_dir, "about.rds"))$seq_test_folds %>%
     unlist() %>% sort()
 }
@@ -262,7 +355,7 @@ read_viewpoints <- function(viewpoint_dir) {
     about$continuous) %>% sort()
 }
 
-get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_seed, filter_corpus) {
+get_model_matrix_corpus <- function(viewpoint_dir, seq_test, max_sample, sample_seed, filter_corpus) {
   corpus <- readRDS(file.path(viewpoint_dir, "corpus.rds")) %>%
     as.list() %>%
     purrr::map2_dfr(seq_along(.), ., ~ tibble(seq_id = .x,
@@ -270,7 +363,7 @@ get_model_matrix_corpus <- function(viewpoint_dir, test_seq, max_sample, sample_
                                               symbol = as.integer(.y),
                                               prev_symbol = c(as.integer(NA),
                                                               .data$symbol[- length(.data$symbol)]))) %>%
-    dplyr::filter(.data$seq_id %in% test_seq)
+    dplyr::filter(.data$seq_id %in% seq_test)
 
   if (!is.null(filter_corpus)) corpus <- filter_corpus(corpus)
   if (!(tibble::is_tibble(corpus) && identical(names(corpus), c(

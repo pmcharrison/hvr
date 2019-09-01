@@ -8,6 +8,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
+RdMacros: Rdpack
 Imports: 
     magrittr,
     devtools,
@@ -29,7 +30,8 @@ Imports:
     readr,
     rlang,
     methods,
-    minVL
+    minVL,
+    Rdpack
 Collate: 
     '1-compute-viewpoints.R'
     '2-compute-ppm-analyses.R'

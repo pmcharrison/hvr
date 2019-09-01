@@ -1,3 +1,73 @@
+#' Conduct viewpoint regression
+#'
+#' Fits a viewpoint regression model.
+#' The following routines must be run first:
+#' 1. \code{\link{compute_viewpoints}}
+#' 2. \code{\link{compute_ppm_analyses}}
+#' 3. \code{\link{compute_model_matrix}}
+#'
+#' The optimisation method is "BFGS" if \code{allow_negative_weights}
+#' is \code{TRUE} and "L-BFGS-B" otherwise (see \code{\link[stats]{optim}}).
+#'
+#' @param parent_dir
+#' (Character scalar)
+#' The parent directory for the output files, shared with functions such as
+#' \code{\link{compute_viewpoints}} and \code{\link{compute_ppm_analyses}}.
+#' Ignored if all other directory arguments are manually specified.
+#'
+#' @param max_iter
+#' (Integer scalar)
+#' Maximum number of iterations for the optimisation routine.
+#'
+#' @param perm_int
+#' (Logical scalar)
+#' Whether to compute permutation-based feature importances.
+#'
+#' @param perm_int_seed
+#' (Integer scalar)
+#' Random seed for the permutation-based feature importances.
+#'
+#' @param perm_int_reps
+#' (Integer scalar)
+#' Number of replicates for the permutation-based feature importances
+#' (the final estimates are averages over these replicates).
+#'
+#' @param allow_negative_weights
+#' (Logical scalar)
+#' Whether negative weights should be allowed for discrete features
+#' (\code{FALSE} by default).
+#'
+#' @param viewpoint_dir
+#' (Character scalar)
+#' The directory for the already-generated
+#' output files from \code{\link{compute_viewpoints}}.
+#' The default should be correct if the user used the
+#' default \code{dir} argument in \code{\link{compute_viewpoints}}.
+#'
+#' @param model_matrix_dir
+#' (Character scalar)
+#' The directory for the already-generated
+#' output files from \code{\link{compute_model_matrix}}.
+#' The default should be correct if the user used the
+#' default \code{dir} argument in \code{\link{compute_model_matrix}}.
+#'
+#' @param output_dir
+#' (Character scalar)
+#' The output directory for the viewpoint regression results.
+#' Will be created if it doesn't exist already.
+#'
+#' @return
+#' The primary output is a viewpoint regression model object
+#' written to disk in the \code{dir} directory.
+#' This object contains the fitted viewpoint regression weights
+#' and feature importance analyses.
+#' Various plots may be constructed from this object:
+#' - \code{\link{plot_costs}}
+#' - \code{\link{plot_perm_int}}
+#' - \code{\link{plot_marginals}}
+#' - \code{\link{plot_discrete_weights}}
+#'
+#' @md
 #' @export
 viewpoint_regression <- function(
   parent_dir,
@@ -47,6 +117,15 @@ viewpoint_regression <- function(
   invisible(res)
 }
 
+#' Testing for viewpoint regression objects
+#'
+#' Tests whether a given object is a member of the class
+#' \code{viewpoint_regression}.
+#'
+#' @param x Object to test.
+#'
+#' @return Logical scalar.
+#'
 #' @export
 is_viewpoint_regression <- function(x) {
   is(x, "viewpoint_regression")
@@ -72,11 +151,22 @@ add_data <- function(x, data) {
   x
 }
 
+#' Get discrete weights
+#'
+#' Extracts weights for discrete viewpoints.
+#'
+#' @param Object from which weights should be extracted.
+#'
+#' @return A \code{\link[tibble]{tibble}}.
+#'
+#' @rdname get_discrete_weights
 #' @export
 get_discrete_weights <- function(x) {
   UseMethod("get_discrete_weights")
 }
 
+#' @rdname get_discrete_weights
+#' @export
 get_discrete_weights.viewpoint_regression <- function(x) {
   viewpoints <- list_viewpoints(x, continuous = FALSE)
   tibble(label = names(x$par),
@@ -86,6 +176,25 @@ get_discrete_weights.viewpoint_regression <- function(x) {
     dplyr::left_join(x$viewpoint_labels, by = "viewpoint")
 }
 
+#' Plot weights for discrete viewpoints
+#'
+#' Plots regression weights for discrete viewpoints
+#' in a viewpoint regression model.
+#'
+#' @param x Viewpoint regression model object,
+#' as created by \code{\link{viewpoint_regression}}.
+#'
+#' @param x_lab Label for x axis.
+#'
+#' @param y_lab Label for y axis.
+#'
+#' @param colours Vector of colours to use.
+#'
+#' @param labels \code{\link[tibble]{tibble}} providing
+#' textual labels for the viewpoints.
+#'
+#' @rdname plot_discrete_weights
+#'
 #' @export
 plot_discrete_weights <- function(x,
                                   x_lab = "Viewpoint",
@@ -95,6 +204,8 @@ plot_discrete_weights <- function(x,
   UseMethod("plot_discrete_weights")
 }
 
+#' @rdname plot_discrete_weights
+#'
 #' @export
 plot_discrete_weights.viewpoint_regression <- function(
   x,
@@ -132,67 +243,29 @@ plot_discrete_weights.viewpoint_regression <- function(
   add_data(p, data)
 }
 
-#' @export
-plot_discrete_weights_compared <- function(x,
-                                           y,
-                                           x_lab,
-                                           y_lab,
-                                           point_size = 3,
-                                           colours = c("#11A3FF", "#B50000")) {
-  UseMethod("plot_discrete_weights_compared")
-}
-
-#' @export
-plot_discrete_weights_compared.viewpoint_regression <- function(x,
-                                                                y,
-                                                                x_lab,
-                                                                y_lab,
-                                                                point_size = 3,
-                                                                colours = c("#11A3FF", "#B50000")) {
-  stopifnot(is_viewpoint_regression(y))
-  if (!requireNamespace("ggplot2")) stop("ggplot2 must be installed first")
-
-  df_y <- get_discrete_weights(y) %>%
-    dplyr::mutate(class = dplyr::recode(class,
-                                        ltm = "Long-term",
-                                        stm = "Short-term"))
-
-  df_scatter <- dplyr::inner_join(
-    get_discrete_weights(x) %>% dplyr::select(c("label", "par")),
-    get_discrete_weights(y) %>% dplyr::select(c("label", "par", "class")),
-    by = "label", suffix = c("_x", "_y")
-  ) %>%
-    dplyr::mutate(class = dplyr::recode(class,
-                                        ltm = "Long-term",
-                                        stm = "Short-term"))
-
-  list(
-    bar = plot_discrete_weights(x, colours = colours) +
-      ggplot2::scale_colour_manual(values = colours) +
-      ggplot2::geom_point(data = df_y,
-                          mapping = ggplot2::aes_string(x = "viewpoint_label",
-                                                        y = "par",
-                                                        colour = "class"),
-                          position = ggplot2::position_dodge(width = 0.9),
-                          fill = "white", shape = 21, size = point_size,
-                          show.legend = FALSE),
-    scatter = df_scatter %>%
-      ggplot2::ggplot(ggplot2::aes_string("par_x", "par_y", colour = "class")) +
-      ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
-      ggplot2::geom_point() +
-      ggplot2::scale_colour_manual("Class", values = colours) +
-      ggplot2::scale_x_continuous(x_lab) +
-      ggplot2::scale_y_continuous(y_lab),
-    data = list(scatter = df_scatter)
-  )
-
-}
-
+#' Get marginals
+#'
+#' Get marginal effects of continuous viewpoints.
+#'
+#' @param x Object from which to extract the marginal effects.
+#'
+#' @return
+#' A list with two elements:
+#' - \code{marginals} - A \code{\link[tibble]{tibble}} of marginal effects
+#' for the continuous viewpoints, as derived by \code{\link{get_marginal}}.
+#' - \code{moments} - A \code{\link[tibble]{tibble}} providing
+#' summary statistics for the different viewpoints
+#' (mean, standard deviation, 5th percentile, 95th percentile,
+#' minimum, maximum).
+#'
+#' @md
+#' @rdname get_marginals
 #' @export
 get_marginals <- function(x) {
   UseMethod("get_marginals")
 }
 
+#' @rdname get_marginals
 #' @export
 get_marginals.viewpoint_regression <- function(x) {
   viewpoints <- list_viewpoints(x, discrete = FALSE)
@@ -217,11 +290,37 @@ get_marginals.viewpoint_regression <- function(x) {
        moments = moments)
 }
 
+#' Get marginal
+#'
+#' Get the marginal effect of a continuous viewpoint.
+#'
+#' @param x Object from which to extract the marginal effect.
+#'
+#' @param viewpoint Character string identifying the viewpoint
+#' whose marginal effect should be extracted.
+#'
+#' @return
+#' A \code{\link[tibble]{tibble}} with the following columns:
+#' - \code{feature_rel} - Relative feature value,
+#' where 0 is the minimum theoretically possible feature value found when
+#' computing the model matrix (i.e. looking over the full alphabet
+#' of possible chord continuations),
+#' and 1 is the maximum such value.
+#' - \code{feature_raw} - Absolute feature value.
+#' - \code{feature_obs} - \code{TRUE} if the feature value falls within
+#' the range of actually observed feature values in the model matrix.
+#' - \code{effect} - The resulting effect, i.e the resulting
+#' contribution to the model's linear predictor.
+#'
+#' @md
+#'
+#' @rdname get_marginal
 #' @export
 get_marginal <- function(x, viewpoint) {
   UseMethod("get_marginal")
 }
 
+#' @rdname get_marginal
 #' @export
 get_marginal.viewpoint_regression <- function(x, viewpoint) {
   checkmate::qassert(viewpoint, "S1")
@@ -266,11 +365,22 @@ get_marginal.viewpoint_regression <- function(x, viewpoint) {
   res
 }
 
+#' Get costs
+#'
+#' Returns the observed costs for the different
+#' discrete viewpoints as well as the cost of
+#' the full viewpoint regression model.
+#'
+#' @param x Viewpoint regression model as created with
+#' \code{\link{viewpoint_regression}}.
+#'
+#' @rdname get_costs
 #' @export
 get_costs <- function(x) {
   UseMethod("get_costs")
 }
 
+#' @rdname get_costs
 #' @export
 get_costs.viewpoint_regression <- function(x) {
   tibble(
@@ -295,6 +405,23 @@ get_costs.viewpoint_regression <- function(x) {
     )
 }
 
+#' Plot costs
+#'
+#' Plots observed costs for a viewpoint regression
+#' as extracted with \code{\link{get_costs}}.
+#'
+#' @param x Viewpoint regression model as created with
+#' \code{\link{viewpoint_regression}}.
+#'
+#' @param x_lab Label for the x axis.
+#'
+#' @param y_lab Label for the y axis.
+#'
+#' @param factor_lab Label for 'model type' factor.
+#'
+#' @param factor_col Colours for 'model type' factor.
+#'
+#' @rdname plot_costs
 #' @export
 plot_costs <- function(x,
                        x_lab = "Cost (bits/chord)",
@@ -304,6 +431,7 @@ plot_costs <- function(x,
   UseMethod("plot_costs")
 }
 
+#' @rdname plot_costs
 #' @export
 plot_costs.viewpoint_regression <- function(x,
                                             x_lab = "Cost (bits/chord)",
@@ -326,6 +454,37 @@ plot_costs.viewpoint_regression <- function(x,
     ggplot2::guides(fill = ggplot2::guide_legend(reverse = TRUE))
 }
 
+#' Plot permutation-based feature importances
+#'
+#' Plots permutation-based feature importances
+#' for a viewpoint regression as extracted with \code{\link{get_perm_int}}.
+#'
+#' @param x Viewpoint regression model as created with
+#' \code{\link{viewpoint_regression}}.
+#'
+#' @param labels \code{\link[tibble]{tibble}} of viewpoint labels.
+#'
+#' @param axis_label
+#' (Character scalar)
+#' Axis label.
+#'
+#' @param order_by_label
+#' (Logical scalar)
+#' If \code{TRUE}, bars are ordered by viewpoint label,
+#' otherwise they are ordered by quantity.
+#'
+#' @param error_bars
+#' (Logical scalar)
+#' Whether or not to plot error bars, which will correspond to the
+#' 2.5th/97.5th percentiles of the permutation-importance replicates.
+#' These will only be stable for relatively large numbers of replicates
+#' (50+).
+#'
+#' @param fill
+#' (Character scalar)
+#' Colour for the bars.
+#'
+#' @rdname plot_perm_int
 #' @export
 plot_perm_int <- function(
   x,
@@ -339,6 +498,7 @@ plot_perm_int <- function(
   UseMethod("plot_perm_int")
 }
 
+#' @rdname plot_perm_int
 #' @export
 plot_perm_int.viewpoint_regression <- function(
   x,
@@ -346,10 +506,10 @@ plot_perm_int.viewpoint_regression <- function(
   axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
   error_bars = FALSE,
-  fill = "#6ba3ff",
-  ...
+  fill = "#6ba3ff"
 ) {
-  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 must be installed first")
+  if (!requireNamespace("ggplot2", quietly = TRUE))
+    stop("ggplot2 must be installed first")
 
   data <- x$perm_int %>%
     dplyr::mutate(viewpoint = plyr::revalue(
@@ -375,9 +535,62 @@ plot_perm_int.viewpoint_regression <- function(
   add_data(p, data)
 }
 
+#' Plot marginals
+#'
+#' Plots the marginal effects for continuous viewpoints in a
+#' viewpoint regression model, as extracted by
+#' \code{\link{get_marginal}}.
+#'
+#' The x axis spans the 5th-95th percentiles
+#' of theoretically possible feature values
+#' as computed in the derivation of the model matrix
+#' (see \code{\link{compute_model_matrix}}).
+#' The shaded area identifies the 5th-95th percentiles
+#' of observed feature values when computing the model matrix.
+#'
+#' @param model_1
+#' Viewpoint regression model,
+#' as created by \code{\link{viewpoint_regression}}.
+#'
+#' @param model_2
+#' Optional second viewpoint regression model,
+#' to be plotted for comparison.
+#'
+#' @param model_labels
+#' Only relevant if a second viewpoint regression model is provided,
+#' in which case this should be a character vector of length 2
+#' corresponding to the plot labels for these two models.
+#'
+#' @param x_lab
+#' (Character scalar)
+#' Label for the x axis.
+#'
+#' @param y_lab
+#' (Character scalar)
+#' Label for the y axis.
+#'
+#' @param viewpoint_labels
+#' \code{\link[tibble]{tibble}} of viewpoint labels.
+#'
+#' @param fill
+#' (Character scalar)
+#' Fill colour for the shaded region identifying the 5th-95th percentiles
+#' of observed feature values.
+#'
+#' @param alpha
+#' (Numeric scalar)
+#' Alpha value for the shaded region.
+#'
+#' @param scales
+#' Passed to \code{\link[ggplot2]{facet_wrap}}.
+#'
+#' @param ...
+#' Further arguments to pass to \code{\link[ggplot2]{facet_wrap}}.
+#'
 #' @export
 plot_marginals <- function(model_1,
                            model_2 = NULL,
+                           model_labels = NULL,
                            x_lab = "Feature value",
                            y_lab = "Effect",
                            viewpoint_labels = x$viewpoint_labels,
@@ -399,6 +612,9 @@ plot_marginals.viewpoint_regression <- function(model_1,
                                                 alpha = 0.25,
                                                 scales = "free",
                                                 ...) {
+  if (!requireNamespace("ggplot2", quietly = TRUE))
+    stop("ggplot2 must be installed first")
+
   stopifnot(is.data.frame(viewpoint_labels),
             all(names(viewpoint_labels) == c("viewpoint", "viewpoint_label")),
             !anyDuplicated(viewpoint_labels$viewpoint),
@@ -467,11 +683,31 @@ plot_marginals.viewpoint_regression <- function(model_1,
 
 }
 
+#' List viewpoints
+#'
+#' Lists the viewpoints in a viewpoint regression model.
+#'
+#' @param x Viewpoint regression model as created with
+#' \code{\link{viewpoint_regression}}.
+#'
+#' @param discrete
+#' (Logical scalar)
+#' Whether to include discrete viewpoints.
+#'
+#' @param continuous
+#' (Logical scalar)
+#' Whether to include continuous viewpoints.
+#'
+#' @return
+#' A character vector of viewpoint identifiers.
+#'
+#' @rdname list_viewpoints
 #' @export
 list_viewpoints <- function(x, discrete = TRUE, continuous = TRUE) {
   UseMethod("list_viewpoints")
 }
 
+#' @rdname list_viewpoints
 #' @export
 list_viewpoints.viewpoint_regression <- function(x,
                                                  discrete = TRUE,
@@ -481,49 +717,6 @@ list_viewpoints.viewpoint_regression <- function(x,
   if (!continuous) pred <- dplyr::filter(pred, .data$discrete)
   pred$viewpoint %>% unique()
 }
-
-
-# plot_marginal <- function(x,
-#                           viewpoint,
-#                           gg = FALSE,
-#                           title = viewpoint,
-#                           x_lab = "Feature value (z-score)",
-#                           y_lab = "Effect",
-#                           reverse_x = FALSE) {
-#   UseMethod("plot_marginal")
-# }
-#
-# plot_marginal.viewpoint_regression <- function(
-#   x,
-#   viewpoint,
-#   gg = FALSE,
-#   title = viewpoint,
-#   x_lab = "Feature value (z-score)",
-#   y_lab = "Log odds",
-#   reverse_x = FALSE
-# ) {
-#   dat <- get_marginal(x, viewpoint = viewpoint)
-#   if (reverse_x) dat$effect <- dat$effect * - 1
-#
-#   if (gg) {
-#     if (!requireNamespace("ggplot2", quietly = TRUE))
-#       stop("please install the ggplot2 package before using this function")
-#     p <- ggplot2::ggplot(dat, ggplot2::aes_string("feature_z", "effect")) +
-#       ggplot2::geom_line() +
-#       ggplot2::scale_x_continuous(x_lab) +
-#       ggplot2::scale_y_continuous(y_lab)
-#     if (!is.null(title)) p <- p + ggplot2::ggtitle(title)
-#     p
-#
-#   } else {
-#     plot(dat$feature_z,
-#          dat$effect,
-#          type = "l",
-#          xlab = x_lab,
-#          ylab = y_lab,
-#          main = viewpoint)
-#   }
-# }
 
 # predict_symbols <- function(model_matrix, par, observed_only = TRUE) {
 #   model_matrix %>%
@@ -617,7 +810,6 @@ conduct_regression <- function(observation_matrix, continuation_matrices, legal,
 
 }
 
-#' @export
 new_regression_model <- function(par, cost,
                                  corpus, observation_matrix,
                                  continuation_matrices, legal, predictors,
@@ -736,21 +928,6 @@ permute_cols <- function(df, cols) {
   # print(cols)
   df
 }
-
-# conduct_regression_old <- function(model_matrix, predictors) {
-#
-#   message("Fitting conditional logit model...")
-#
-#   m <- predictors$label %>%
-#     paste(collapse = " + ") %>%
-#     sprintf("cbind(observed, seq_event_id) ~ %s", .) %>%
-#     as.formula() %>%
-#     mclogit::mclogit(data = model_matrix,
-#                      start = c(1, 1),  #rep(1, times = nrow(predictors)),
-#                      control = mclogit::mclogit.control(trace = TRUE))
-#
-#   m
-# }
 
 get_regression_predictors <- function(model_matrix_dir) {
   readRDS(file.path(model_matrix_dir, "predictors.rds"))
