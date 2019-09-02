@@ -50,7 +50,7 @@ Collate:
     'configurations.R'
     'get-viewpoint-matrices.R'
     'hvr-package.R'
-    'top-level.R'
+    'model-dataset.R'
     'utils-pipe.R'
 Remotes:
     pmcharrison/hrep,

@@ -98,5 +98,4 @@ test_that("regression tests", {
   plot_discrete_weights(res)
   plot_costs(res)
 
-  plot_discrete_weights_compared(res, res, "x label", "y label")
 })

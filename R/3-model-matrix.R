@@ -226,7 +226,8 @@ get_continuous_model_matrix <- function(corpus, predictors, viewpoint_dir, poly_
       dplyr::filter(.data$seq_id == i) %>%
       seq_continuous_model_matrix(predictors, viewpoint_dir, allow_repeats)
   }, .progress = "text") %>%
-    dplyr::bind_rows()
+    data.table::rbindlist()
+    # dplyr::bind_rows()
 
   tmp <- add_polynomials(raw, predictors, poly_degree, na_val)
   list(
@@ -303,7 +304,8 @@ get_discrete_model_matrix <- function(corpus, predictors, ppm_dir, na_val) {
       dplyr::filter(.data$seq_id == i) %>%
       seq_discrete_model_matrix(predictors, ppm_dir, na_val)
   }, .progress = "text") %>%
-    dplyr::bind_rows()
+    data.table::rbindlist()
+    # dplyr::bind_rows()
 }
 
 seq_discrete_model_matrix <- function(events, predictors, ppm_dir, na_val) {
