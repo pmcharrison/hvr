@@ -45,6 +45,14 @@
 #' By default, there is just one fold corresponding to the
 #' entire of \code{corpus_test}, meaning that no cross-validation is applied.
 #'
+#' @param weights
+#' (NULL or numeric vector)
+#' An optional set of viewpoint regression weights;
+#' if not provided, weights will be optimised automatically.
+#' These weights should be provided as a named numeric vector
+#' in a specific order; the best way to find this format
+#' is to fit a pilot regression model with the desired viewpoint set.
+#'
 #' @inheritParams compute_viewpoints
 #' @inheritParams compute_ppm_analyses
 #' @inheritParams compute_model_matrix

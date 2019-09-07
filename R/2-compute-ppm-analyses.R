@@ -70,6 +70,9 @@
 #'
 #' @md
 #'
+#' @references
+#' \insertAllCited{}
+#'
 #' @export
 compute_ppm_analyses <- function(
   parent_dir,
@@ -288,6 +291,14 @@ ppm_identify_models <- function(stm_opt, ltm_opt, viewpoints, output_dir) {
   models
 }
 
+#' LTM options
+#'
+#' Creates an option list for the long-term discrete viewpoint
+#' models in the viewpoint regression model.
+#' Most (all?) of these options are passed to the PPM model.
+#'
+#' @inheritParams stm_options
+#'
 #' @export
 ltm_options <- function(enabled = TRUE,
                         order_bound = 10L,
@@ -298,6 +309,18 @@ ltm_options <- function(enabled = TRUE,
   as.list(environment())
 }
 
+#' STM options
+#'
+#' Creates an option list for the short-term discrete viewpoint
+#' models in the viewpoint regression model.
+#' Most (all?) of these options are passed to the PPM model.
+#'
+#' @param enabled
+#' (Logical scalar)
+#' Whether or not the model is enabled.
+#'
+#' @inheritParams ppm::new_ppm_simple
+#'
 #' @export
 stm_options <- function(enabled = TRUE,
                         order_bound = 10L,

@@ -89,7 +89,7 @@ print.viewpoint <- function(x, ...) {
       "viewpoint: '", name(x), "'\n", sep = "")
 }
 
-#' Is discrete
+#' Is discrete?
 #'
 #' Checks if a viewpoint is discrete.
 #'
@@ -97,16 +97,23 @@ print.viewpoint <- function(x, ...) {
 #' @return Logical scalar.
 #' @rdname is_discrete
 #' @export
-is_discrete <- function(x, ...) {
+is_discrete <- function(x) {
   UseMethod("is_discrete")
 }
 
 #' @export
 #' @rdname is_discrete
-is_discrete.viewpoint <- function(x, ...) {
+is_discrete.viewpoint <- function(x) {
   x$discrete
 }
 
+#' Is viewpoint?
+#'
+#' Checks whether an object is of class \code{viewpoint}.
+#'
+#' @param x Object to check.
+#' @return Logical scalar.
+#'
 #' @export
 is_viewpoint <- function(x) {
   is(x, "viewpoint")

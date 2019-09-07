@@ -74,7 +74,7 @@ compute_predictions <- function(
   res <- corpus %>%
     dplyr::select(c("seq_id", "event_id", "symbol")) %>%
     dplyr::rename(chord_id = .data$symbol) %>%
-    dplyr::mutate(chord = hrep::decode(chord_id, "pc_chord"),
+    dplyr::mutate(chord = hrep::decode(.data$chord_id, "pc_chord"),
                   probability = probs,
                   information_content = - log2(probs))
 

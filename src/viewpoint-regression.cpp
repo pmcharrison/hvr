@@ -3,7 +3,6 @@
 #include <iostream>
 using namespace Rcpp;
 
-//' @export
 // [[Rcpp::export]]
 NumericVector event_probs (const NumericVector &weights,
                            const NumericMatrix &observation_matrix,

@@ -33,8 +33,9 @@ Defaults to a fairly comprehensive list, \code{\link{hvr_viewpoints}}.}
 
 \item{verbose}{(Logical scalar)
 Whether or not to print verbose status reports.}
-
-\item{The}{primary output is written to disk in the \code{output_dir} directory.}
+}
+\value{
+The primary output is written to disk in the \code{output_dir} directory.
 }
 \description{
 This function computes viewpoints (features) for every chord sequence

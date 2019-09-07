@@ -54,7 +54,7 @@
 #' The default should be correct if the user used the
 #' default \code{dir} argument in \code{\link{compute_viewpoints}}.
 #'
-#' @param compute_ppm_analyses
+#' @param ppm_dir
 #' (Character scalar)
 #' The directory for the already-generated
 #' output files from \code{\link{compute_ppm_analyses}}.

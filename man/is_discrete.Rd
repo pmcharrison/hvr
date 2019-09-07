@@ -3,11 +3,11 @@
 \name{is_discrete}
 \alias{is_discrete}
 \alias{is_discrete.viewpoint}
-\title{Is discrete}
+\title{Is discrete?}
 \usage{
-is_discrete(x, ...)
+is_discrete(x)
 
-\method{is_discrete}{viewpoint}(x, ...)
+\method{is_discrete}{viewpoint}(x)
 }
 \arguments{
 \item{x}{Viewpoint to check.}

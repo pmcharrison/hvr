@@ -155,7 +155,7 @@ add_data <- function(x, data) {
 #'
 #' Extracts weights for discrete viewpoints.
 #'
-#' @param Object from which weights should be extracted.
+#' @param x Object from which weights should be extracted.
 #'
 #' @return A \code{\link[tibble]{tibble}}.
 #'
@@ -457,7 +457,8 @@ plot_costs.viewpoint_regression <- function(x,
 #' Plot permutation-based feature importances
 #'
 #' Plots permutation-based feature importances
-#' for a viewpoint regression as extracted with \code{\link{get_perm_int}}.
+#' for a viewpoint regression model as extracted
+#' from the \code{$perm_int} slot.
 #'
 #' @param x Viewpoint regression model as created with
 #' \code{\link{viewpoint_regression}}.
@@ -492,8 +493,7 @@ plot_perm_int <- function(
   axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
   error_bars = FALSE,
-  fill = "#6ba3ff",
-  ...
+  fill = "#6ba3ff"
 ) {
   UseMethod("plot_perm_int")
 }
@@ -517,7 +517,7 @@ plot_perm_int.viewpoint_regression <- function(
       labels$viewpoint_label %>% stats::setNames(labels$viewpoint),
       warn_missing = FALSE
     )) %>%
-    dplyr::arrange(if (order_by_label) viewpoint else mean) %>%
+    dplyr::arrange(if (order_by_label) .data$viewpoint else .data$mean) %>%
     dplyr::mutate(viewpoint = factor(.data$viewpoint, levels = rev(.data$viewpoint)))
 
   p <- data %>%
@@ -593,7 +593,7 @@ plot_marginals <- function(model_1,
                            model_labels = NULL,
                            x_lab = "Feature value",
                            y_lab = "Effect",
-                           viewpoint_labels = x$viewpoint_labels,
+                           viewpoint_labels = model_1$viewpoint_labels,
                            fill = "blue",
                            alpha = 0.25,
                            scales = "free",
@@ -639,7 +639,7 @@ plot_marginals.viewpoint_regression <- function(model_1,
       tmp$marginals %>% dplyr::mutate(model = model_labels[1]),
       get_marginals(model_2)$marginals %>% dplyr::mutate(model = model_labels[2])
     ) %>%
-      dplyr::mutate(model = factor(model, levels = model_labels))
+      dplyr::mutate(model = factor(.data$model, levels = model_labels))
   }
 
   if (!all(unique(marginals$viewpoint) %in% viewpoint_labels$viewpoint))
@@ -652,8 +652,8 @@ plot_marginals.viewpoint_regression <- function(model_1,
 
   obs_ranges_raw <- marginals %>%
     dplyr::group_by(.data$viewpoint) %>%
-    dplyr::summarise(min = min(feature_raw[feature_obs]),
-                     max = max(feature_raw[feature_obs])) %>%
+    dplyr::summarise(min = min(.data$feature_raw[.data$feature_obs]),
+                     max = max(.data$feature_raw[.data$feature_obs])) %>%
     dplyr::left_join(viewpoint_labels, by = "viewpoint")
 
   aes <- if (is.null(model_2))
@@ -896,8 +896,8 @@ get_perm_int <- function(weights,
                      mean = mean(x),
                      n = length(x),
                      sd = sd(x),
-                     ci_95_low =  as.numeric(quantile(x, 0.025)),
-                     ci_95_high = as.numeric(quantile(x, 0.975)))
+                     ci_95_low =  as.numeric(stats::quantile(x, 0.025)),
+                     ci_95_high = as.numeric(stats::quantile(x, 0.975)))
     })
   }, .progress = "time") %>%
     dplyr::bind_rows()

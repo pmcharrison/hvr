@@ -34,7 +34,7 @@
 #' (Logical scalar)
 #' Whether or not to print verbose status reports.
 #'
-#' @param
+#' @return
 #' The primary output is written to disk in the \code{output_dir} directory.
 #'
 #' @export

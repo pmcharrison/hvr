@@ -77,3 +77,6 @@ are modelled using PPM.
 The default PPM implementation corresponds to that described in
 \insertCite{Pearce2005;textual}{hvr}.
 }
+\references{
+\insertAllCited{}
+}

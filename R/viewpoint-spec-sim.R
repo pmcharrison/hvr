@@ -1,6 +1,20 @@
 #' @include viewpoints.R
 NULL
 
+#' New spectral similarity viewpoint
+#'
+#' Defines a new spectral similarity viewpoint with an arbitrary half life.
+#'
+#' The spectral similarity viewpoint takes the pitch-class spectral similarity
+#' model of \insertCite{Milne2016;textual}{hrep} and adds an echoic decay
+#' inspired by \insertCite{Leman2000;textual}{hvr}.
+#'
+#' @param half_life (Numeric scalar)
+#' Half-life of the decay function, in chords.
+#'
+#' @references
+#' \insertAllCited{}
+#'
 #' @export
 new_spec_sim_viewpoint <- function(half_life) {
   checkmate::qassert(half_life, "N1(0,)")

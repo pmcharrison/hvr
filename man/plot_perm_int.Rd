@@ -7,7 +7,7 @@
 \usage{
 plot_perm_int(x, labels = x$viewpoint_labels,
   axis_label = "Feature importance (bits/chord)",
-  order_by_label = FALSE, error_bars = FALSE, fill = "#6ba3ff", ...)
+  order_by_label = FALSE, error_bars = FALSE, fill = "#6ba3ff")
 
 \method{plot_perm_int}{viewpoint_regression}(x,
   labels = x$viewpoint_labels,
@@ -38,5 +38,6 @@ Colour for the bars.}
 }
 \description{
 Plots permutation-based feature importances
-for a viewpoint regression as extracted with \code{\link{get_perm_int}}.
+for a viewpoint regression model as extracted
+from the \code{$perm_int} slot.
 }

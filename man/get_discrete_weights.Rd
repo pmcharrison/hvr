@@ -10,7 +10,7 @@ get_discrete_weights(x)
 \method{get_discrete_weights}{viewpoint_regression}(x)
 }
 \arguments{
-\item{Object}{from which weights should be extracted.}
+\item{x}{Object from which weights should be extracted.}
 }
 \value{
 A \code{\link[tibble]{tibble}}.

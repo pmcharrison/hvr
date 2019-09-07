@@ -31,7 +31,8 @@ Imports:
     rlang,
     methods,
     minVL,
-    Rdpack
+    Rdpack,
+    data.table
 Collate: 
     '1-compute-viewpoints.R'
     '2-compute-ppm-analyses.R'

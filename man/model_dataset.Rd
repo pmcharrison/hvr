@@ -29,6 +29,13 @@ Directory in which to save the model outputs.}
 \item{viewpoints}{List of viewpoints to apply, as created by \code{\link{new_viewpoint}}.
 Defaults to a fairly comprehensive list, \code{\link{hvr_viewpoints}}.}
 
+\item{weights}{(NULL or numeric vector)
+An optional set of viewpoint regression weights;
+if not provided, weights will be optimised automatically.
+These weights should be provided as a named numeric vector
+in a specific order; the best way to find this format
+is to fit a pilot regression model with the desired viewpoint set.}
+
 \item{poly_degree}{(Integer scalar)
 Degree of the polynomials to compute for the continuous features.}
 

@@ -51,6 +51,12 @@ output files from \code{\link{compute_viewpoints}}.
 The default should be correct if the user used the
 default \code{dir} argument in \code{\link{compute_viewpoints}}.}
 
+\item{ppm_dir}{(Character scalar)
+The directory for the already-generated
+output files from \code{\link{compute_ppm_analyses}}.
+The default should be correct if the user used the
+default \code{dir} argument in \code{\link{compute_ppm_analyses}}.}
+
 \item{output_dir}{(Character scalar)
 The output directory for the model matrix.
 Will be created if it doesn't exist already.}
@@ -68,12 +74,6 @@ Defaults to the \code{seq_test} argument that was provided to
 Whether repeated chords are theoretically permitted in the
 chord sequences. It is recommended to remove such repetitions
 before modelling.}
-
-\item{compute_ppm_analyses}{(Character scalar)
-The directory for the already-generated
-output files from \code{\link{compute_ppm_analyses}}.
-The default should be correct if the user used the
-default \code{dir} argument in \code{\link{compute_ppm_analyses}}.}
 }
 \value{
 The primary output is written to disk in the \code{dir} directory.
