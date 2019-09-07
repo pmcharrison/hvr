@@ -115,21 +115,28 @@ model_dataset <- function(
                        na_val = na_val,
                        allow_repeats = allow_repeats)
 
-  if (is.null(weights)) {
+  mod <- if (is.null(weights)) {
     message("\n4/5: Fitting viewpoint regression model...")
-    viewpoint_regression(parent_dir = output_dir,
-                         max_iter = max_iter,
-                         perm_int = perm_int,
-                         perm_int_seed = perm_int_seed,
-                         perm_int_reps = perm_int_reps,
-                         allow_negative_weights = allow_negative_weights)
+    viewpoint_regression(
+      parent_dir = output_dir,
+      max_iter = max_iter,
+      perm_int = perm_int,
+      perm_int_seed = perm_int_seed,
+      perm_int_reps = perm_int_reps,
+      allow_negative_weights = allow_negative_weights
+    )
   } else {
     message("\n4/5: Skipping regression model fitting ",
             "and using prespecified weights...")
   }
 
   message("\n5/5: Generating final predictions...")
-  compute_predictions(parent_dir = output_dir, weights = weights)
+  pred <- compute_predictions(parent_dir = output_dir, weights = weights)
+
+  list(
+    mod = mod,
+    pred = pred
+  )
 }
 
 check_corpus_test_folds <- function(corpus_test_folds, corpus_test) {

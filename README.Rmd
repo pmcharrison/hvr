@@ -9,7 +9,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%"
+  out.width = "100%",
+  dpi = 300
 )
 ```
 # hvr
@@ -17,4 +18,67 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-We have some practical notes for researchers wishing to train the model on new datasets. Model training comprises two steps: training the categorical viewpoint models and optimizing the regression weights. The categorical viewpoint models are data-hungry because they contain many thousands of parameters, but they are fast to train: given a training corpus, the algorithm simply computes feature values for each sequence and saves all n-grams from these sequences for n < 12. Optimizing regression weights requires less training data because there are only about 40 parameters to optimize, but training is relatively slow because of an expensive normalization constant that needs to be computed over the entire alphabet of 24,576 chords. Correspondingly, we recommend using a large training corpus for training the categorical viewpoint models, and a small corpus for optimizing viewpoint weights, where the latter corpus is preferably constructed by downsampling from a larger corpus. As a rule of thumb, we recommend that the viewpoint optimization corpus should contain at least 5 times as many chords as the number of regression weights. Future strategies for speeding up the weight optimization stage could include stochastic gradient descent and approximating the normalization constant. 
+The `hvr` package implements Harrison & Pearce's harmony viewpoint regression model.
+This model generates predictions for chord progressions on the basis of
+an assortment of continuous and categorical perceptual features.
+
+## Installation
+
+From GitHub:
+
+```r 
+if (!requireNamespace("devtools")) install.packages("devtools")
+devtools::install_github("pmcharrison/hvr")
+```
+
+## Example usage
+
+```{r, include = FALSE, echo = TRUE}
+if (!requireNamespace("hcorp"))
+  stop("please install the hcorp package first: ", 
+       "https://github.com/pmcharrison/hcorp")
+library(hrep)
+library(hvr)
+```
+
+```{r, cache = TRUE, include = TRUE, echo = TRUE, results = 'hide'}
+x <- model_dataset(corpus_test = hcorp::popular_1[1],
+                   corpus_pretrain = hcorp::popular_1[2:10],
+                   output_dir = "tmp", 
+                   viewpoints = hvr_viewpoints[c("root_pc", 
+                                                 "hutch_78_roughness",
+                                                 "spec_sim_3")],
+                   poly_degree = 1)
+```
+
+```{r, include = TRUE, echo = TRUE, out.width = '60%'}
+plot(x$pred$information_content,
+     xlab = "Chord position",
+     ylab = "Surprisal (bits)",
+     type = "l")
+
+```
+
+```{r, include = TRUE, echo = TRUE, out.width = '60%'}
+ggplot2::theme_set(ggplot2::theme_classic())
+plot_perm_int(x$mod, error_bars = TRUE)
+```
+
+## Usage notes
+
+### API
+
+The top-level function is `model_dataset`, which automates the 
+standard modelling pipeline for harmonic viewpoint regression.
+This function wraps several lower-level subroutines
+(e.g. viewpoint computation, PPM analyses)
+which can be run individually if desired. 
+See `?model_dataset` for more details.
+
+### Training set sizes
+
+Optimising feature weights is memory-intensive, and best done with
+datasets of < 1,000 chords. Larger datasets can be modelled using
+downsampling. 
+Training categorical viewpoint models is relatively efficient;
+the implementation can cope well with datasets of c. 100,000 chords.

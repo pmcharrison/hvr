@@ -6,3 +6,5 @@
 ^scratch\.R$
 ^test-analysis$
 ^README\.Rmd$
+^tmp$
+^README_cache$
