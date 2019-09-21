@@ -98,4 +98,13 @@ test_that("regression tests", {
   plot_discrete_weights(res)
   plot_costs(res)
 
+  pred <- compute_predictions(parent_dir = dir)
+  expect_equal(pred$chord_id, as.integer(corpus[[1]]))
+  expect_equal(pred$seq_id, rep(1, times = 5))
+  expect_equal(pred$event_id, 1:5)
+  expect_equal(pred$information_content, c(
+    6.42519663028064, 0.297594772932616, 5.4814451109883,
+    0.271197958337024, 1.58748542260361),
+    tolerance = 1e-6
+  )
 })

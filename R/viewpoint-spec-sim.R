@@ -66,7 +66,7 @@ new_spec_sim_viewpoint <- function(half_life) {
 get_spectra <- function(chord_ids) {
   purrr::map(
     chord_ids,
-    ~ hrep::.milne_pc_spectrum(hvrmap::map_pc_chord$milne_pc_spectrum[., ])
+    ~ hrep::.milne_pc_spectrum(hvrmap::map_pc_chord$milne_pc_spectrum[ , .])
   ) %>%
     hrep::vec("milne_pc_spectrum")
 }
