@@ -53,8 +53,8 @@ x <- model_dataset(corpus_test = hcorp::popular_1[1],
 #> Fitting conditional logit model with optimiser L-BFGS-B...
 #> i = 1, cost = 14.5849051613387
 #> i = 2, cost = 10.6736467958291
-#> i = 3, cost = 7.47732891193489
-#> i = 4, cost = 6.21768515070836
+#> i = 3, cost = 7.47732891193488
+#> i = 4, cost = 6.21768515070835
 #> i = 5, cost = 5.72067609993417
 #> i = 6, cost = 5.59570082968013
 #> i = 7, cost = 5.60478721301665
@@ -62,9 +62,9 @@ x <- model_dataset(corpus_test = hcorp::popular_1[1],
 #> i = 9, cost = 5.56841067151148
 #> i = 10, cost = 5.56797160957621
 #> i = 11, cost = 5.56798982125514
-#> i = 12, cost = 5.56796715247233
+#> i = 12, cost = 5.56796715247232
 #> i = 13, cost = 5.56796616667616
-#> i = 14, cost = 5.56796616601681
+#> i = 14, cost = 5.56796616601682
 #> Computing permutation feature importances...
 #> 
 #> 5/5: Generating final predictions...
