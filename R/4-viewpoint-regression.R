@@ -446,7 +446,7 @@ plot_costs.viewpoint_regression <- function(x,
                                             setdiff(unique(.data$label),
                                                     "Combined") %>% sort(TRUE)))) %>%
     ggplot2::ggplot(ggplot2::aes_string(x = "label", y = "cost", fill = "class")) +
-    ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black") +
+    ggplot2::geom_bar(stat = "identity", position = "dodge", colour = "black", orientation = "x") +
     ggplot2::scale_x_discrete(y_lab) +
     ggplot2::scale_y_continuous(x_lab, limits = c(0, 15)) +
     ggplot2::scale_fill_manual(factor_lab, values = factor_col) +
@@ -525,7 +525,7 @@ plot_perm_int.viewpoint_regression <- function(
                                         y = "mean",
                                         ymin = "ci_95_low",
                                         ymax = "ci_95_high")) +
-    ggplot2::geom_bar(colour = "black", fill = fill, stat = "identity") +
+    ggplot2::geom_bar(colour = "black", fill = fill, stat = "identity", orientation = "x") +
     ggplot2::scale_x_discrete(NULL) +
     ggplot2::scale_y_continuous(axis_label) +
     ggplot2::coord_flip()
