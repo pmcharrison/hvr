@@ -5,12 +5,14 @@
 
 <!-- badges: start -->
 
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
-The `hvr` package implements Harrison & Pearce’s harmony viewpoint
-regression model. This model generates predictions for chord
-progressions on the basis of an assortment of continuous and categorical
-perceptual features.
+The `hvr` package implements the harmony viewpoint regression model from
+Peter M. C. Harrison’s PhD thesis. This model generates predictions for
+chord progressions on the basis of an assortment of continuous and
+categorical perceptual features.
 
 ## Installation
 
@@ -103,3 +105,11 @@ datasets of \< 1,000 chords. Larger datasets can be modelled using
 downsampling. Training categorical viewpoint models is relatively
 efficient; the implementation can cope well with datasets of c. 100,000
 chords.
+
+## Future development
+
+We have exciting ideas about how to improve the computational
+tractability, robustness, and interpretability of the model. We expect
+to be able to share an updated version by 2021, but feel free to contact
+Peter Harrison (pmc.harrison \[at\] gmail.com) before then for a
+progress report and potentially a draft implementation.

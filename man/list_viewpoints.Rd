@@ -7,8 +7,7 @@
 \usage{
 list_viewpoints(x, discrete = TRUE, continuous = TRUE)
 
-\method{list_viewpoints}{viewpoint_regression}(x, discrete = TRUE,
-  continuous = TRUE)
+\method{list_viewpoints}{viewpoint_regression}(x, discrete = TRUE, continuous = TRUE)
 }
 \arguments{
 \item{x}{Viewpoint regression model as created with

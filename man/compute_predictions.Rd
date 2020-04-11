@@ -4,10 +4,13 @@
 \alias{compute_predictions}
 \title{Compute predictions}
 \usage{
-compute_predictions(parent_dir, weights = NULL,
+compute_predictions(
+  parent_dir,
+  weights = NULL,
   model_matrix_dir = file.path(parent_dir, "2-model-matrix"),
   regression_dir = file.path(parent_dir, "3-viewpoint-regression"),
-  output_dir = file.path(parent_dir, "4-predictions"))
+  output_dir = file.path(parent_dir, "4-predictions")
+)
 }
 \arguments{
 \item{parent_dir}{(Character scalar)

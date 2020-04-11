@@ -5,14 +5,25 @@
 \alias{plot_perm_int.viewpoint_regression}
 \title{Plot permutation-based feature importances}
 \usage{
-plot_perm_int(x, labels = x$viewpoint_labels,
-  axis_label = "Feature importance (bits/chord)",
-  order_by_label = FALSE, error_bars = FALSE, fill = "#6ba3ff")
-
-\method{plot_perm_int}{viewpoint_regression}(x,
+plot_perm_int(
+  x,
   labels = x$viewpoint_labels,
   axis_label = "Feature importance (bits/chord)",
-  order_by_label = FALSE, error_bars = FALSE, fill = "#6ba3ff")
+  order_by_label = FALSE,
+  error_bars = FALSE,
+  discrete_label = "Discrete",
+  continuous_label = "Continuous"
+)
+
+\method{plot_perm_int}{viewpoint_regression}(
+  x,
+  labels = x$viewpoint_labels,
+  axis_label = "Feature importance (bits/chord)",
+  order_by_label = FALSE,
+  error_bars = FALSE,
+  discrete_label = "Discrete",
+  continuous_label = "Continuous"
+)
 }
 \arguments{
 \item{x}{Viewpoint regression model as created with
@@ -33,8 +44,9 @@ Whether or not to plot error bars, which will correspond to the
 These will only be stable for relatively large numbers of replicates
 (50+).}
 
-\item{fill}{(Character scalar)
-Colour for the bars.}
+\item{discrete_label}{Label to apply to discrete viewpoints.}
+
+\item{continuous_label}{Label to apply to continuous viewpoints.}
 }
 \description{
 Plots permutation-based feature importances

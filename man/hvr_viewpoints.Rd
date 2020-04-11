@@ -4,7 +4,9 @@
 \name{hvr_viewpoints}
 \alias{hvr_viewpoints}
 \title{Viewpoints}
-\format{An object of class \code{list} of length 16.}
+\format{
+An object of class \code{list} of length 16.
+}
 \usage{
 hvr_viewpoints
 }

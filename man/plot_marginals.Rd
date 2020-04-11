@@ -4,10 +4,18 @@
 \alias{plot_marginals}
 \title{Plot marginals}
 \usage{
-plot_marginals(model_1, model_2 = NULL, model_labels = NULL,
-  x_lab = "Feature value", y_lab = "Effect",
-  viewpoint_labels = model_1$viewpoint_labels, fill = "blue",
-  alpha = 0.25, scales = "free", ...)
+plot_marginals(
+  model_1,
+  model_2 = NULL,
+  model_labels = NULL,
+  x_lab = "Feature value",
+  y_lab = "Effect",
+  viewpoint_labels = model_1$viewpoint_labels,
+  fill = "blue",
+  alpha = 0.25,
+  scales = "free",
+  ...
+)
 }
 \arguments{
 \item{model_1}{Viewpoint regression model,

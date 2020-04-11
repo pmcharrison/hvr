@@ -5,13 +5,21 @@
 \alias{plot_costs.viewpoint_regression}
 \title{Plot costs}
 \usage{
-plot_costs(x, x_lab = "Cost (bits/chord)", y_lab = "Model",
-  factor_lab = "Model type", factor_col = c("#E8E410", "#11A3FF",
-  "#B50000"))
+plot_costs(
+  x,
+  x_lab = "Cost (bits/chord)",
+  y_lab = "Model",
+  factor_lab = "Model type",
+  factor_col = c("#E8E410", "#11A3FF", "#B50000")
+)
 
-\method{plot_costs}{viewpoint_regression}(x, x_lab = "Cost (bits/chord)",
-  y_lab = "Model", factor_lab = "Model type",
-  factor_col = c("#E8E410", "#11A3FF", "#B50000"))
+\method{plot_costs}{viewpoint_regression}(
+  x,
+  x_lab = "Cost (bits/chord)",
+  y_lab = "Model",
+  factor_lab = "Model type",
+  factor_col = c("#E8E410", "#11A3FF", "#B50000")
+)
 }
 \arguments{
 \item{x}{Viewpoint regression model as created with

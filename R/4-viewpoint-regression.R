@@ -481,9 +481,11 @@ plot_costs.viewpoint_regression <- function(x,
 #' These will only be stable for relatively large numbers of replicates
 #' (50+).
 #'
-#' @param fill
-#' (Character scalar)
-#' Colour for the bars.
+#' @param discrete_label
+#' Label to apply to discrete viewpoints.
+#'
+#' @param continuous_label
+#' Label to apply to continuous viewpoints.
 #'
 #' @rdname plot_perm_int
 #' @export
@@ -493,7 +495,8 @@ plot_perm_int <- function(
   axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
   error_bars = FALSE,
-  fill = "#6ba3ff"
+  discrete_label = "Discrete",
+  continuous_label = "Continuous"
 ) {
   UseMethod("plot_perm_int")
 }
@@ -506,17 +509,28 @@ plot_perm_int.viewpoint_regression <- function(
   axis_label = "Feature importance (bits/chord)",
   order_by_label = FALSE,
   error_bars = FALSE,
-  fill = "#6ba3ff"
+  discrete_label = "Discrete",
+  continuous_label = "Continuous"
 ) {
   if (!requireNamespace("ggplot2", quietly = TRUE))
     stop("ggplot2 must be installed first")
 
   data <- x$perm_int %>%
-    dplyr::mutate(viewpoint = plyr::revalue(
-      .data$viewpoint,
-      labels$viewpoint_label %>% stats::setNames(labels$viewpoint),
-      warn_missing = FALSE
-    )) %>%
+    dplyr::left_join(x$predictors %>% dplyr::select(c("discrete", "viewpoint")) %>% unique(),
+              by = "viewpoint") %>%
+    dplyr::mutate(
+      discrete = plyr::mapvalues(
+        .data$discrete,
+        from = c(TRUE, FALSE),
+        to = c(discrete_label, continuous_label),
+        warn_missing = FALSE
+      ),
+      viewpoint = plyr::revalue(
+        .data$viewpoint,
+        labels$viewpoint_label %>% stats::setNames(labels$viewpoint),
+        warn_missing = FALSE
+      )
+    ) %>%
     dplyr::arrange(if (order_by_label) .data$viewpoint else .data$mean) %>%
     dplyr::mutate(viewpoint = factor(.data$viewpoint, levels = rev(.data$viewpoint)))
 
@@ -524,10 +538,12 @@ plot_perm_int.viewpoint_regression <- function(
     ggplot2::ggplot(ggplot2::aes_string(x = "viewpoint",
                                         y = "mean",
                                         ymin = "ci_95_low",
-                                        ymax = "ci_95_high")) +
-    ggplot2::geom_bar(colour = "black", fill = fill, stat = "identity", orientation = "x") +
+                                        ymax = "ci_95_high",
+                                        fill = "discrete")) +
+    ggplot2::geom_bar(colour = "black", stat = "identity", orientation = "x") +
     ggplot2::scale_x_discrete(NULL) +
     ggplot2::scale_y_continuous(axis_label) +
+    ggplot2::scale_fill_viridis_d(NULL) +
     ggplot2::coord_flip()
 
   if (error_bars) p <- p + ggplot2::geom_errorbar(width = 0.25)

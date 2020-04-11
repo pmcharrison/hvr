@@ -5,12 +5,21 @@
 \alias{plot_discrete_weights.viewpoint_regression}
 \title{Plot weights for discrete viewpoints}
 \usage{
-plot_discrete_weights(x, x_lab = "Viewpoint", y_lab = "Weight",
-  colours = c("#B50000", "#11A3FF"), labels = x$viewpoint_labels)
+plot_discrete_weights(
+  x,
+  x_lab = "Viewpoint",
+  y_lab = "Weight",
+  colours = c("#B50000", "#11A3FF"),
+  labels = x$viewpoint_labels
+)
 
-\method{plot_discrete_weights}{viewpoint_regression}(x,
-  x_lab = "Viewpoint", y_lab = "Weight", colours = c("#B50000",
-  "#11A3FF"), labels = x$viewpoint_labels)
+\method{plot_discrete_weights}{viewpoint_regression}(
+  x,
+  x_lab = "Viewpoint",
+  y_lab = "Weight",
+  colours = c("#B50000", "#11A3FF"),
+  labels = x$viewpoint_labels
+)
 }
 \arguments{
 \item{x}{Viewpoint regression model object,

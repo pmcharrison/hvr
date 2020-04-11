@@ -4,9 +4,14 @@
 \alias{compute_viewpoints}
 \title{Compute viewpoints}
 \usage{
-compute_viewpoints(corpus, parent_dir, output_dir = file.path(parent_dir,
-  "0-viewpoints"), seq_test = seq_along(corpus),
-  viewpoints = hvr::hvr_viewpoints, verbose = TRUE)
+compute_viewpoints(
+  corpus,
+  parent_dir,
+  output_dir = file.path(parent_dir, "0-viewpoints"),
+  seq_test = seq_along(corpus),
+  viewpoints = hvr::hvr_viewpoints,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{corpus}{A corpus of chord sequences as created by \code{\link[hrep]{corpus}}.

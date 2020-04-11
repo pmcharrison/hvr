@@ -4,12 +4,17 @@
 \alias{viewpoint_regression}
 \title{Conduct viewpoint regression}
 \usage{
-viewpoint_regression(parent_dir, max_iter = 500, perm_int = TRUE,
-  perm_int_seed = 1, perm_int_reps = 5,
-  allow_negative_weights = FALSE, viewpoint_dir = file.path(parent_dir,
-  "0-viewpoints"), model_matrix_dir = file.path(parent_dir,
-  "2-model-matrix"), output_dir = file.path(parent_dir,
-  "3-viewpoint-regression"))
+viewpoint_regression(
+  parent_dir,
+  max_iter = 500,
+  perm_int = TRUE,
+  perm_int_seed = 1,
+  perm_int_reps = 5,
+  allow_negative_weights = FALSE,
+  viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
+  model_matrix_dir = file.path(parent_dir, "2-model-matrix"),
+  output_dir = file.path(parent_dir, "3-viewpoint-regression")
+)
 }
 \arguments{
 \item{parent_dir}{(Character scalar)

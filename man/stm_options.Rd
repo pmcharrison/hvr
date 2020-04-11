@@ -4,9 +4,14 @@
 \alias{stm_options}
 \title{STM options}
 \usage{
-stm_options(enabled = TRUE, order_bound = 10L,
-  shortest_deterministic = TRUE, exclusion = TRUE,
-  update_exclusion = TRUE, escape = "ax")
+stm_options(
+  enabled = TRUE,
+  order_bound = 10L,
+  shortest_deterministic = TRUE,
+  exclusion = TRUE,
+  update_exclusion = TRUE,
+  escape = "ax"
+)
 }
 \arguments{
 \item{enabled}{(Logical scalar)
@@ -41,7 +46,12 @@ Bunton (1996).}
 \item{escape}{(Character scalar)
 Takes values 'a', 'b', 'c', 'd', or 'ax',
 corresponding to the eponymous escape methods 
-in Pearce (2005).}
+in Pearce (2005).
+Note that there is a mistake in the definition of escape method 
+"AX" in Pearce (2005); 
+the denominator of lambda needs to have 1 added.
+This is what we implement here. Note that Pearce's
+LISP implementation correctly adds 1 here, like us.}
 }
 \description{
 Creates an option list for the short-term discrete viewpoint

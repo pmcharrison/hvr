@@ -4,13 +4,21 @@
 \alias{compute_model_matrix}
 \title{Compute model matrix}
 \usage{
-compute_model_matrix(parent_dir, max_sample = Inf, sample_seed = 1,
-  poly_degree = 4L, na_val = 0, filter_corpus = NULL, ltm = TRUE,
+compute_model_matrix(
+  parent_dir,
+  max_sample = Inf,
+  sample_seed = 1,
+  poly_degree = 4L,
+  na_val = 0,
+  filter_corpus = NULL,
+  ltm = TRUE,
   viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
   ppm_dir = file.path(parent_dir, "1-ppm"),
   output_dir = file.path(parent_dir, "2-model-matrix"),
   viewpoints = read_viewpoints(viewpoint_dir),
-  seq_test = list_seq_test(ppm_dir), allow_repeats = FALSE)
+  seq_test = list_seq_test(ppm_dir),
+  allow_repeats = FALSE
+)
 }
 \arguments{
 \item{parent_dir}{(Character scalar)

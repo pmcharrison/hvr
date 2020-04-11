@@ -105,6 +105,6 @@ test_that("regression tests", {
   expect_equal(pred$information_content, c(
     6.42519663028064, 0.297594772932616, 5.4814451109883,
     0.271197958337024, 1.58748542260361),
-    tolerance = 1e-6
+    tolerance = 1e-2
   )
 })

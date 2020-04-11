@@ -4,13 +4,26 @@
 \alias{model_dataset}
 \title{Model dataset}
 \usage{
-model_dataset(corpus_test, corpus_pretrain, output_dir,
-  viewpoints = hvr::hvr_viewpoints, weights = NULL, poly_degree = 4L,
-  max_iter = 500, corpus_test_folds = list(seq_along(corpus_test)),
-  allow_repeats = FALSE, max_sample = Inf, sample_seed = 1,
-  stm_opt = stm_options(), ltm_opt = ltm_options(), na_val = 0,
-  perm_int = TRUE, perm_int_seed = 1, perm_int_reps = 5,
-  allow_negative_weights = FALSE)
+model_dataset(
+  corpus_test,
+  corpus_pretrain,
+  output_dir,
+  viewpoints = hvr::hvr_viewpoints,
+  weights = NULL,
+  poly_degree = 4L,
+  max_iter = 500,
+  corpus_test_folds = list(seq_along(corpus_test)),
+  allow_repeats = FALSE,
+  max_sample = Inf,
+  sample_seed = 1,
+  stm_opt = stm_options(),
+  ltm_opt = ltm_options(),
+  na_val = 0,
+  perm_int = TRUE,
+  perm_int_seed = 1,
+  perm_int_reps = 5,
+  allow_negative_weights = FALSE
+)
 }
 \arguments{
 \item{corpus_test}{Corpus of chord sequences to predict,

@@ -4,15 +4,16 @@
 \alias{compute_ppm_analyses}
 \title{Compute PPM analyses}
 \usage{
-compute_ppm_analyses(parent_dir, viewpoint_dir = file.path(parent_dir,
-  "0-viewpoints"), output_dir = file.path(parent_dir, "1-ppm"),
-  stm_opt = stm_options(), ltm_opt = ltm_options(),
-  seq_test_folds = list(readRDS(file.path(viewpoint_dir,
-  "about.rds"))$seq_test),
-  seq_pretrain = readRDS(file.path(viewpoint_dir,
-  "about.rds"))$seq_pretrain,
-  viewpoints = readRDS(file.path(viewpoint_dir,
-  "about.rds"))$discrete_viewpoints)
+compute_ppm_analyses(
+  parent_dir,
+  viewpoint_dir = file.path(parent_dir, "0-viewpoints"),
+  output_dir = file.path(parent_dir, "1-ppm"),
+  stm_opt = stm_options(),
+  ltm_opt = ltm_options(),
+  seq_test_folds = list(readRDS(file.path(viewpoint_dir, "about.rds"))$seq_test),
+  seq_pretrain = readRDS(file.path(viewpoint_dir, "about.rds"))$seq_pretrain,
+  viewpoints = readRDS(file.path(viewpoint_dir, "about.rds"))$discrete_viewpoints
+)
 }
 \arguments{
 \item{parent_dir}{(Character scalar)
